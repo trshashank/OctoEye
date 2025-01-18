@@ -14,11 +14,30 @@ from skimage.filters import threshold_otsu
 import imageio
 from skimage.morphology import erosion, dilation, opening, closing, white_tophat, disk
 
-folder_path = "/media/samiarja/USB/OctoEye_Dataset/pattern9"
-output_folder = "figures"
+folder_path   = "/media/samiarja/USB/OctoEye_Dataset/pattern9"
+output_folder = "output"
 
 variance_window_size = 40
 dilation_param = 20 #10
+
+start_time = time.time()
+width, height, events = octoeye.read_es_file(f"{folder_path}/event_stream.es")
+sensor_size = (width, height)
+first_timestamp = events["t"][0]
+last_timestamp = events["t"][-1]
+end_time = time.time()
+colour_pixel_labels = np.zeros(len(events), dtype=int)
+print(f"Execution time: {end_time - start_time} seconds")
+
+########################################################################################
+red_idx   = np.logical_and(events["t"] >= first_timestamp, events["t"] <= 7.1e6) # [first_timestamp 7.1e6]
+green_idx = np.logical_and(events["t"] >= 7.8e6, events["t"] <= 15e6) # [7.8e6 15e6]
+blue_idx  = np.logical_and(events["t"] >= 15.3e6, events["t"] <= last_timestamp) # [15.3e6 last_timestamp]
+########################################################################################
+
+
+vx_vel = np.zeros((len(events["x"]), 1)) + 0.0 / 1e6
+vy_vel = np.zeros((len(events["y"]), 1)) + 0.0 / 1e6
 
 def calculate_variance_map(image, roi_size=5, masks=None):
     """
@@ -59,28 +78,8 @@ def calculate_variance_map(image, roi_size=5, masks=None):
 def upscale_image(image, target_size):
     return image.resize(target_size, Image.BILINEAR)
 
-start_time = time.time()
-width, height, events = octoeye.read_es_file(f"{folder_path}/event_stream.es")
-sensor_size = (width, height)
-first_timestamp = events["t"][0]
-last_timestamp = events["t"][-1]
-end_time = time.time()
-colour_pixel_labels = np.zeros(len(events), dtype=int)
-print(f"Execution time: {end_time - start_time} seconds")
 
-########################################################################################
-red_idx   = np.logical_and(events["t"] >= first_timestamp, events["t"] <= 7.1e6) # [first_timestamp 7.1e6]
-green_idx = np.logical_and(events["t"] >= 7.8e6, events["t"] <= 15e6) # [7.8e6 15e6]
-blue_idx  = np.logical_and(events["t"] >= 15.3e6, events["t"] <= last_timestamp) # [15.3e6 last_timestamp]
-########################################################################################
-
-# feast_weight = octoeye.OctoFEAST_training(events[red_idx])
-# print(f"FEAST weight: {feast_weight}")
-
-vx_vel = np.zeros((len(events["x"]), 1)) + 0.0 / 1e6
-vy_vel = np.zeros((len(events["y"]), 1)) + 0.0 / 1e6
-
-
+################################# THIS WHERE THE CODE STARTS #################################
 ################ Start processing the red events ################
 cumulative_map_object, seg_label = octoeye.accumulate_cnt_rgb((width, height),
                                                               events[red_idx],
@@ -102,7 +101,7 @@ upscaled_variance_map_red = upscale_image(Image.fromarray(variance_map_red), war
 red_binary_mask = upscale_image(Image.fromarray((variance_map_red_cp * 255).astype(np.uint8)), warped_image_segmentation_rgb.size)
 red_binary_mask_array = np.array(red_binary_mask, dtype=bool)
 
-red_binary_mask.save('figures/0_variance_map.png')
+red_binary_mask.save(f'{folder_path}/0_variance_map.png')
 
 # make a copy of the red mask but with dilation
 red_binary_mask_cp = red_binary_mask_array.copy()
@@ -122,7 +121,7 @@ cumulative_map_object, seg_label = octoeye.accumulate_cnt_rgb((width, height),
                                                               colour_pixel_labels[red_idx].astype(np.int32),
                                                               (vx_vel[red_idx], vy_vel[red_idx]))
 warped_image_segmentation_rgb = octoeye.rgb_render(cumulative_map_object, seg_label)
-warped_image_segmentation_rgb.save("figures/0_red_events.png")
+warped_image_segmentation_rgb.save(f'{folder_path}/0_red_events.png')
 
 
 ################ Start processing the green events ################
@@ -146,7 +145,7 @@ upscaled_variance_map_green = upscale_image(Image.fromarray(variance_map_green),
 green_binary_mask = upscale_image(Image.fromarray((variance_map_green_cp * 255).astype(np.uint8)), warped_image_segmentation_rgb.size)
 green_binary_mask_array = np.array(green_binary_mask, dtype=bool)
 
-green_binary_mask.save('figures/1_variance_map.png')
+green_binary_mask.save(f'{folder_path}/1_variance_map.png')
 
 # make a copy of the red mask but with dilation
 green_binary_mask_cp = green_binary_mask_array.copy()
@@ -165,7 +164,7 @@ cumulative_map_object, seg_label = octoeye.accumulate_cnt_rgb((width, height),
                                                               colour_pixel_labels[green_idx].astype(np.int32),
                                                               (vx_vel[green_idx], vy_vel[green_idx]))
 warped_image_segmentation_rgb = octoeye.rgb_render(cumulative_map_object, seg_label)
-warped_image_segmentation_rgb.save("figures/1_green_events.png")
+warped_image_segmentation_rgb.save(f'{folder_path}/1_green_events.png')
 
 ################ Start processing the blue events ################
 cumulative_map_object, seg_label = octoeye.accumulate_cnt_rgb((width, height),
@@ -187,7 +186,7 @@ upscaled_variance_map_blue = upscale_image(Image.fromarray(variance_map_blue), w
 blue_binary_mask = upscale_image(Image.fromarray((variance_map_blue_cp * 255).astype(np.uint8)), warped_image_segmentation_rgb.size)
 blue_binary_mask_array = np.array(blue_binary_mask, dtype=bool)
 
-blue_binary_mask.save('figures/2_variance_map.png')
+blue_binary_mask.save(f'{folder_path}/2_variance_map.png')
 
 # make a copy of the blue mask but with dilation
 blue_binary_mask_cp = blue_binary_mask_array.copy()
@@ -206,7 +205,7 @@ cumulative_map_object, seg_label = octoeye.accumulate_cnt_rgb((width, height),
                                                               colour_pixel_labels[blue_idx].astype(np.int32),
                                                               (vx_vel[blue_idx], vy_vel[blue_idx]))
 warped_image_segmentation_rgb = octoeye.rgb_render(cumulative_map_object, seg_label)
-warped_image_segmentation_rgb.save("figures/2_blue_events.png")
+warped_image_segmentation_rgb.save(f'{folder_path}/2_blue_events.png')
 
 print("Saving the labels")
 # Convert colour_pixel_labels to uint8 to reduce memory usage
