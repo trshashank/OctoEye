@@ -1983,7 +1983,7 @@ def viz_LiC_ELM(sensor_size, output_dir, dataname, xCoordArraytest, yCoordArrayt
 
 
 # Function to apply overlay with blurred edges
-def apply_blurry_overlay(frame, mask, color, sigma=3):
+def apply_blurry_overlay(frame, mask, color, sigma=3, opacity=0.5):
     # Ensure 'color' is an RGB tuple; if not, define or convert it here
     # Example color dictionary to translate color names to RGB values if needed
     color_map = {

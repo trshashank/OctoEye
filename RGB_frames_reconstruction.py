@@ -15,6 +15,7 @@ frames_dir = f"{parent_path}/greylevel_reconstructed_frames"
 output_dir = f"{parent_path}/RGB_reconstructed_frames"
 os.makedirs(output_dir, exist_ok=True)
 
+
 start_time = time.time()
 width, height, events = octoeye.read_es_file(f"{parent_path}/event_stream.es")
 data = np.load(f"{parent_path}/colour_pixel_labels.npz")
@@ -81,7 +82,7 @@ for color, settings in color_settings.items():
 print("All frames saved. Starting video generation.")
 # FFmpeg Command to Generate Video
 output_video_path = f"{output_dir}/colour_segmentation_video.mp4"
-frame_rate = 30  # User can modify this value
+frame_rate = 5  # User can modify this value
 
 ffmpeg_command = [
     "ffmpeg",
