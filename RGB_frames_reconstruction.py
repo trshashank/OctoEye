@@ -29,12 +29,6 @@ vy_vel = np.zeros((len(events["y"]), 1)) + 0.0 / 1e6
 print(f"Execution time: {end_time - start_time} seconds")
 
 
-########################################################################################
-red_idx   = np.logical_and(events["t"] >= first_timestamp, events["t"] <= 7.1e6) # [first_timestamp 7.1e6]
-green_idx = np.logical_and(events["t"] >= 7.8e6, events["t"] <= 15e6) # [7.8e6 15e6]
-blue_idx  = np.logical_and(events["t"] >= 15.3e6, events["t"] <= last_timestamp) # [15.3e6 last_timestamp]
-########################################################################################
-
 # Combined settings for colors, time bounds, and labels
 color_settings = {
     "Red": {"focal_window": (first_timestamp, 7.1e6), "label": 1},
