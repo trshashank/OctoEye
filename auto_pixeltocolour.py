@@ -101,7 +101,7 @@ upscaled_variance_map_red = upscale_image(Image.fromarray(variance_map_red), war
 red_binary_mask = upscale_image(Image.fromarray((variance_map_red_cp * 255).astype(np.uint8)), warped_image_segmentation_rgb.size)
 red_binary_mask_array = np.array(red_binary_mask, dtype=bool)
 
-red_binary_mask.save(f'{folder_path}/0_variance_map.png')
+red_binary_mask.save(f'{folder_path}/0_variance_map_red.png')
 
 # make a copy of the red mask but with dilation
 red_binary_mask_cp = red_binary_mask_array.copy()
@@ -145,7 +145,7 @@ upscaled_variance_map_green = upscale_image(Image.fromarray(variance_map_green),
 green_binary_mask = upscale_image(Image.fromarray((variance_map_green_cp * 255).astype(np.uint8)), warped_image_segmentation_rgb.size)
 green_binary_mask_array = np.array(green_binary_mask, dtype=bool)
 
-green_binary_mask.save(f'{folder_path}/1_variance_map.png')
+green_binary_mask.save(f'{folder_path}/1_variance_map_green.png')
 
 # make a copy of the red mask but with dilation
 green_binary_mask_cp = green_binary_mask_array.copy()
@@ -186,7 +186,7 @@ upscaled_variance_map_blue = upscale_image(Image.fromarray(variance_map_blue), w
 blue_binary_mask = upscale_image(Image.fromarray((variance_map_blue_cp * 255).astype(np.uint8)), warped_image_segmentation_rgb.size)
 blue_binary_mask_array = np.array(blue_binary_mask, dtype=bool)
 
-blue_binary_mask.save(f'{folder_path}/2_variance_map.png')
+blue_binary_mask.save(f'{folder_path}/2_variance_map_blue.png')
 
 # make a copy of the blue mask but with dilation
 blue_binary_mask_cp = blue_binary_mask_array.copy()

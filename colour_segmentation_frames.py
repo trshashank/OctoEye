@@ -16,11 +16,11 @@ start_time = time.time()
 width, height, events = octoeye.read_es_file(f"{folder_path}/event_stream.es")
 sensor_size = (width, height)
 last_timestamp = events["t"][-1]
+vx_vel = np.zeros((len(events["x"]), 1)) + 0.0 / 1e6
+vy_vel = np.zeros((len(events["y"]), 1)) + 0.0 / 1e6
 end_time = time.time()
 print(f"Execution time: {end_time - start_time} seconds")
 
-# # load the labels .txt
-# labels = np.loadtxt(f"{folder_path}/colour_pixel_labels.txt", dtype=int)
 # load the .npz file
 data = np.load(f"{folder_path}/colour_pixel_labels.npz")
 labels = data["colour_pixel_labels"]
@@ -28,8 +28,7 @@ labels = data["colour_pixel_labels"]
 print("Start saving the frames")
 sequence_number = 0
 chunk_timediff = 5e4
-vx_vel = np.zeros((len(events["x"]), 1)) + 0.0 / 1e6
-vy_vel = np.zeros((len(events["y"]), 1)) + 0.0 / 1e6
+
 for chunk_start in np.arange(0, last_timestamp + chunk_timediff, chunk_timediff):
     chunk_end = chunk_start + chunk_timediff
     ii = np.where(np.logical_and(events["t"] >= chunk_start, events["t"] < chunk_end))
@@ -46,7 +45,7 @@ for chunk_start in np.arange(0, last_timestamp + chunk_timediff, chunk_timediff)
     sequence_number += 1
     print(f"Saved frame {output_filename}")
     
-    
+
 print("All frames saved. Starting video generation.")
 # FFmpeg Command to Generate Video
 output_video_path = f"{folder_path}/colour_segmentation_frames/colour_segmentation_video.mp4"
