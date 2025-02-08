@@ -126,114 +126,137 @@
 //   }
 // }
 
-// Arduino (Teensy) Code – unchanged
-#include <Arduino.h>
-#include <TimeLib.h>
 
-const int TRIGGER_PIN = 2;  // EVK4 trigger pin
+#include <Arduino.h>
+
+// Remove EEPROM since we’re using an array
+
+const int TRIGGER_PIN = 2;            // EVK4 trigger pin
 const unsigned long MOVE_INTERVAL_MS = 2000;
-const int maxCycles = 10;  // Number of cycles to run before stopping
+const int maxCycles = 10;             // Number of cycles to run before stopping
 
 bool moveForward = true;
 unsigned long lastMoveTime = 0;
 int cycleCount = 0;
 bool startCommandReceived = false;
-unsigned long long unix_time_offset = 0;  // Will store the reference Unix time
+unsigned long long unix_time_offset = 0;  // Reference Unix time received from Python
 
+struct DataPoint {
+  unsigned long long timestamp;       // In microseconds
+  uint16_t feedback;
+};
+
+DataPoint dataPoints[maxCycles];      // Array to store the data points
+
+// Send collected data over Serial
+void sendDataToPython() {
+  Serial.println("DATA_START");
+  for (int i = 0; i < maxCycles; i++) {
+    Serial.print(dataPoints[i].timestamp);
+    Serial.print(",");
+    Serial.println(dataPoints[i].feedback);
+  }
+  Serial.println("DATA_END");
+  Serial.flush();
+}
+
+// These functions communicate with the motor controller on Serial1.
 void jrkSetTarget(uint16_t target) {
-    if (target > 3500) target = 3500;
-    Serial1.write(0xC0 + (target & 0x1F));
-    Serial1.write((target >> 5) & 0x7F);
+  if (target > 3500) target = 3500;
+  Serial1.write(0xC0 + (target & 0x1F));
+  Serial1.write((target >> 5) & 0x7F);
 }
 
 uint16_t jrkGetFeedback() {
-    Serial1.write(0xE5);
-    Serial1.write(0x04);
-    Serial1.write(0x02);
-    while (Serial1.available() < 2);
-    return (uint16_t)(Serial1.read() + 256U * Serial1.read());
+  Serial1.write(0xE5);
+  Serial1.write(0x04);
+  Serial1.write(0x02);
+  // Wait until two bytes are available:
+  while (Serial1.available() < 2);
+  // First byte is the high part:
+  uint8_t highByte = Serial1.read();
+  uint8_t lowByte  = Serial1.read();
+  return (uint16_t)(highByte + 256U * lowByte);
 }
 
 void setup() {
-    Serial.begin(115200);
-    Serial1.begin(9600);
-    pinMode(TRIGGER_PIN, OUTPUT);
-    digitalWrite(TRIGGER_PIN, LOW);
+  Serial.begin(115200);
+  Serial1.begin(9600);
+  pinMode(TRIGGER_PIN, OUTPUT);
+  // digitalWrite(TRIGGER_PIN, LOW);
 
-    Serial.println("Teensy ready. Waiting for Unix time from Python...");
+  Serial.println("Teensy ready. Waiting for Unix time from Python...");
 
-    while (Serial.available() == 0) {
-        // Wait for Python to send a reference Unix timestamp
-    }
+  // Wait for a Unix timestamp from Python (make sure the Python code sends a newline-terminated timestamp)
+  while (!Serial.available());
+  String input = Serial.readStringUntil('\n');
+  unix_time_offset = strtoull(input.c_str(), NULL, 10);
 
-    // Read the Unix timestamp as a string
-    String input = Serial.readStringUntil('\n');
-    unix_time_offset = strtoull(input.c_str(), NULL, 10);  // Converts string to 64-bit integer
-
-    Serial.print("Received Unix timestamp: ");
-    Serial.println(unix_time_offset);
+  Serial.print("Received Unix timestamp: ");
+  Serial.println(unix_time_offset);
 }
 
-// Function to return synchronized Unix timestamp
 unsigned long long getUnixTimestamp() {
-    return unix_time_offset + micros();  // Both values are in microseconds
+  // Convert micros() (microseconds) to nanoseconds before adding the offset.
+  return unix_time_offset + ((unsigned long long)micros() * 1000ULL);
 }
+
 
 void loop() {
-    // 1️⃣ Wait for Python to send "START"
-    if (!startCommandReceived && Serial.available() > 0) {
-        String cmd = Serial.readStringUntil('\n');
-        cmd.trim();
-        if (cmd.equalsIgnoreCase("START")) {
-            startCommandReceived = true;
-            Serial.println("READY");  // Only print once
-        }
+  // Wait for the "START" command if not already received
+  if (!startCommandReceived && Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd.equalsIgnoreCase("START")) {
+      startCommandReceived = true;
+      Serial.println("READY");
     }
+  }
+  
+  if (!startCommandReceived) {
+    return;
+  }
 
-    if (!startCommandReceived) {
-        return;  // Do nothing until START is received
+  // Every MOVE_INTERVAL_MS milliseconds, execute a cycle (up to maxCycles)
+  if (millis() - lastMoveTime >= MOVE_INTERVAL_MS && cycleCount < maxCycles) {
+    lastMoveTime = millis();
+    uint16_t target = moveForward ? 3500 : 2500;
+    jrkSetTarget(target);
+    
+    // Pulse the trigger pin
+    digitalWrite(TRIGGER_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIGGER_PIN, LOW);
+
+    // Record the current Unix time and the feedback from the controller
+    unsigned long long unix_time = getUnixTimestamp();
+    uint16_t feedback = jrkGetFeedback();
+
+    // Save the data in our array
+    dataPoints[cycleCount].timestamp = unix_time;
+    dataPoints[cycleCount].feedback = feedback;
+
+    moveForward = !moveForward;
+    cycleCount++;
+  }
+
+  
+  // Once all cycles are complete, send the data to Python.
+  if (cycleCount >= maxCycles) {
+    sendDataToPython();
+    Serial.println("DONE");
+    Serial.flush();
+
+    // Wait for a RESET command from Python before resetting the board.
+    while (!Serial.available());
+    String response = Serial.readStringUntil('\n');
+    if (response.equalsIgnoreCase("RESET")) {
+      delay(200);
+      // Reset the Teensy (the following line triggers a system reset)
+      SCB_AIRCR = 0x05FA0004;
     }
-
-    // 2️⃣ Run the actuator movement
-    if (millis() - lastMoveTime >= MOVE_INTERVAL_MS && cycleCount < maxCycles) {
-        lastMoveTime = millis();
-        uint16_t target = moveForward ? 800 : 100;
-        jrkSetTarget(target);
-        digitalWrite(TRIGGER_PIN, HIGH);
-        delayMicroseconds(10);
-        digitalWrite(TRIGGER_PIN, LOW);
-
-        // Get Unix timestamp and feedback
-        unsigned long long unix_time = getUnixTimestamp();
-        uint16_t feedback = jrkGetFeedback(); 
-
-        // Print values in CSV format for Python
-        Serial.print(unix_time);
-        Serial.print(", ");
-        Serial.println(feedback);
-
-        moveForward = !moveForward;
-        cycleCount++;
-    }
-
-      // 3️⃣ After finishing cycles, reset Teensy to wait for a new START
-    if (cycleCount >= maxCycles) {
-        Serial.println("DONE");  // Notify Python that the cycle is complete
-        Serial.flush();          // Wait until all data is transmitted
-
-        jrkSetTarget(800);  // Stop the motor
-        digitalWrite(TRIGGER_PIN, LOW);
-        delay(2000);        // Allow time for any final communications
-
-        Serial.println("Restarting Teensy...");
-        Serial.flush();      // Ensure this message is sent as well
-        delay(200);          // A short delay before reset
-        
-        SCB_AIRCR = 0x05FA0004;  // Soft reset Teensy
-    }
-
+  }
 }
-
 
 
 
