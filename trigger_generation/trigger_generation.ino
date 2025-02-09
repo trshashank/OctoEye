@@ -133,7 +133,7 @@
 
 const int TRIGGER_PIN = 2;            // EVK4 trigger pin
 const unsigned long MOVE_INTERVAL_MS = 2000;
-const int maxCycles = 10;             // Number of cycles to run before stopping
+const int maxCycles = 20;             // Number of cycles to run before stopping
 
 bool moveForward = true;
 unsigned long lastMoveTime = 0;
@@ -220,7 +220,7 @@ void loop() {
   // Every MOVE_INTERVAL_MS milliseconds, execute a cycle (up to maxCycles)
   if (millis() - lastMoveTime >= MOVE_INTERVAL_MS && cycleCount < maxCycles) {
     lastMoveTime = millis();
-    uint16_t target = moveForward ? 3500 : 2500;
+    uint16_t target = moveForward ? 3500 : 2200;
     jrkSetTarget(target);
     
     // Pulse the trigger pin
