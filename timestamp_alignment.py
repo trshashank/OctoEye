@@ -7,7 +7,7 @@ import faery
 import re
 
 
-wavelength                      = 800
+wavelength                      = 1000
 PLOT_RANGE                      = (450,650) #(700,900)
 parent_directory                = f"D:/gen4-windows/recordings/{wavelength}"
 event_filename                  = next(Path(f"{parent_directory}").glob("*_dvs_without_hot_pixels_crop.es")).stem
@@ -143,6 +143,8 @@ for idx in range(len(unix_motor_timestamps) - 1):
     # Optionally, print time diff info:
     # print(f"time diff {idx}: {(events['t'][event_idx][-1] - events['t'][event_idx][0])/1e6} s, Events: {len(event_idx)}")
 
+np.savetxt(f"{parent_directory}/per_event_focal_length.txt", focal_length_per_events)
+
 # --- Convert Timestamps to Seconds ---
 events_seconds = events["t"] / 1e6  
 event_rate_seconds = (event_rate.timestamps + initial_t) / 1e6
@@ -219,19 +221,3 @@ plt.grid(True, linestyle='--', linewidth=0.5)
 fig.tight_layout()
 plt.savefig(f"{parent_directory}/focal_length_vs_eventrate.png")
 plt.show()
-
-### TODO
-# ## save a cropped image of the circle
-# focus_timestamp = focal_timestamps_data[4,0]
-# timestamp_offset = 5e3
-# time_window = np.where(np.logical_and(events["t"] >= focus_timestamp,
-#                                       events["t"] >= focus_timestamp + timestamp_offset))
-# focused_events = events[time_window]
-
-# cumulative_map_object = octoeye.accumulate_py(sensor_size,(0,0),events[time_window])
-# cumulative_image  = octoeye.render(
-#             cumulative_map_object,
-#             colormap_name="magma",
-#             gamma=lambda image: image ** (1 / 3),
-#         )
-# cumulative_image.save(f"{parent_directory}/focal_points_cumulative_image.png")

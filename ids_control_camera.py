@@ -21,9 +21,9 @@ import tifffile
 const int TRIGGER_PIN = 2;            // EVK4 trigger pin
 
 // Motor range and step parameters
-const uint16_t MIN_POSITION = 2400;
-const uint16_t MAX_POSITION = 3600;
-const uint16_t STEP = 50;
+const uint16_t MIN_POSITION = 2800;
+const uint16_t MAX_POSITION = 3400;
+const uint16_t STEP = 1;
 uint16_t currentPosition = MIN_POSITION;  // Start at MIN_POSITION
 
 // Function to send target value to the motor controller over Serial1.
@@ -105,8 +105,8 @@ void loop() {
 
 def main():
     # Ensure the frames folder exists.
-    wavelength = "1200"
-    main_path = "D:\Optical_characterisation\hyperspectral_high_resolution"
+    wavelength = "800"
+    main_path = "D:/Optical_characterisation/hyperspectral_high_resolution"
     if not os.path.exists(f"{main_path}/{wavelength}"):
         os.makedirs(f"{main_path}/{wavelength}")
     
@@ -207,7 +207,7 @@ def main():
     
         # Define the motor positions from 2600 to 3400 in steps of 50.
         steps = 1
-        positions = list(range(2800, 3200 + 1, steps))
+        positions = list(range(2800, 3250 + 1, steps))
     
         for pos in positions:
             try:
@@ -270,4 +270,7 @@ def main():
             arduino.close()
     
 if __name__ == '__main__':
-    main()
+  time_start = time.time()
+  main()
+  time_end = time.time()
+  print(f"Time taken: {(time_end - time_start)/60} minutes")

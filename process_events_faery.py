@@ -6,9 +6,10 @@ wavelength    = 700
 parent_folder = f"D:/gen4-windows/recordings/{wavelength}"
 filename = next(Path(f"{parent_folder}").glob("*.es")).stem
 
-left_dim, right_dim, top_dim, bottom_dim = octoeye.center_crop_bounds(width=1280, height=720, crop_size=100)
 
+########################### EVENT CROPPING #########################
 print("Processing cropping")
+left_dim, right_dim, top_dim, bottom_dim = octoeye.center_crop_bounds(width=1280, height=720, crop_size=100)
 (
     faery.events_stream_from_file(
         faery.dirname.parent / f"{parent_folder}" / f"{filename}.es",
@@ -24,6 +25,8 @@ print("Processing cropping")
     )
 )
 
+
+########################### EVENT HOT PIXEL FILTER #########################
 print("Processing hot pixel filter")
 (
     faery.events_stream_from_file(
@@ -52,6 +55,7 @@ event_rate = faery.events_stream_from_file(
 event_rate.to_file(
     faery.dirname.parent / f"{parent_folder}" / f"{filename}_dvs_event_rate.png",
 )
+
 
 ########################### WIGGLE PLOT #########################
 print("Processing wiggle plot")
@@ -101,19 +105,20 @@ print("Processing event frame")
     )
 )
 
-# ########################### EVENT VIDEO #########################
-# print("Processing event video")
-# (
-#     faery.events_stream_from_file(
-#         faery.dirname.parent / f"{parent_folder}" / f"{filename}_dvs_without_hot_pixels_crop.es"
-#     )
-#     .regularize(frequency_hz=5.0)
-#     .render(
-#         decay="cumulative",
-#         tau="00:00:00.500000",
-#         colormap=faery.colormaps.managua.flipped(),
-#     )
-#     .scale()
-#     .add_timecode()
-#     .to_file(faery.dirname.parent / f"{parent_folder}" / f"{filename}_video.mp4")
-# )
+
+########################### EVENT VIDEO #########################
+print("Processing event video")
+(
+    faery.events_stream_from_file(
+        faery.dirname.parent / f"{parent_folder}" / f"{filename}_dvs_without_hot_pixels_crop.es"
+    )
+    .regularize(frequency_hz=1)
+    .render(
+        decay="cumulative",
+        tau="00:00:00.500000",
+        colormap=faery.colormaps.managua.flipped(),
+    )
+    .scale()
+    .add_timecode()
+    .to_file(faery.dirname.parent / f"{parent_folder}" / f"{filename}_video.mp4")
+)

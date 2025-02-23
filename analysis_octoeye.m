@@ -1764,61 +1764,38 @@ hold off;
 
 
 %% More precise VIS-IR characterisation
-feedback_range_array = 2800:1:3200;
+feedback_range_array = 2800:1:3250;
+pixel_intensity_limit = 65535;
 parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\';
 folders = {
-    % '400',...
-    % % '425',...
+    '400',...
     % '450',...
-    % % '475', ...
     % '500', ...
-    % % '525',...
     % '550',...
-    % % '575',...
-    % '600',...
-    % % '625', ...
+    '600',...
     % '650',...
-    % % '675',...
     % '700',...
-    % % '725',...
     % '750',...
-    % % '775',...
-    % '800',...
-    % % '825',...
+    '800',...
     % '850',...
-    % % '875',...
     % '900',...
-    % % '925',...
     % '950',...
-    % % '975',...
     '1000'
-    };      % Folder names (wavelengths)
+    };
 
 colors   = {
             '#610061', ... %400nm
-            % '#5400ff',... %425nm
-            'b',...       % 450nm
-            % 'c',...       % 475nm
-            '#00ff92',... %500nm
-            % '#4aff00', ... %525nm
-            'g',...       %550nm
-            % '#f0ff00', ... % 575nm
+            % 'b',...       % 450nm
+            % '#00ff92',... %500nm
+            % 'g',...       %550nm
             '#ffbe00', ... %600nm
-            % '#ff6300', ... 625nm
-            'r',...       % 650nm
-            % '#ff0000', ... %675nm
-            '#e90000', ... %700nm
-            % '#d10000', ... %725nm
-            '#a10000',...%750nm
-            % '#a10000',...%775nm
+            % 'r',...       % 650nm
+            % '#e90000', ... %700nm
+            % '#a10000',...%750nm
             '#6d0000',...%800nm
-            % '#4f1515',...%825nm
-            '#3b0f0f',...%850nm
-            % '#2b0b0b',...%875nm
-            '#210808',...%900nm
-            % '#1c0606',...%925nm
-            '#1c0404',...%950nm
-            % '#140202',...%975nm
+            % '#3b0f0f',...%850nm
+            % '#210808',...%900nm
+            % '#1c0404',...%950nm
             '#030000',%1000nm
             };             
 
@@ -1826,31 +1803,19 @@ colors   = {
 % For folder "450": use blue QE, "550": green QE, "650": red QE.
 quantum_efficiency_cam = [ 
                             1, ... %400nm
-                            % 1, ... %425nm
                             1, ... %450nm
-                            % 1,... %475nm
                             1, ... %500nm
-                            % 1, ... %525nm
                             1, ... %550nm
-                            % 1, ... % 575nm
                             1, ... %600nm
-                            % 1,... %625nm 
                             1, ... %650nm
-                            % 1, ... %675nm
                             1, ... %700nm
-                            % 1,...%725nm
                             1,...%750nm
-                            % 1,...%775nm
-                            0.99,...%800nm
-                            % 1,...%825nm
-                            0.95,...%850nm
-                            % 1,...%875nm
+                            1,...%800nm
+                            1,...%850nm
                             1,...%900nm
-                            % 1,...%925nm
                             1,...%950nm
-                            % 1,...%975nm
                             1,...%1000nm
-                            ]; % BCGR
+                            ];
 
 QE = quantum_efficiency_cam;
 
@@ -1901,22 +1866,22 @@ for i = 1:numel(folders)
             img = rgb2gray(img);
         end
 
-        img(img > 100) = 0;
+        img(img > pixel_intensity_limit) = 0;
         
         % Crop a vertical region around the image center (±30 rows)
         [rows, ~] = size(img);
         mid_row = round(rows/2);
-        r_start = max(1, mid_row - 50);
-        r_ed   = min(rows, mid_row + 50);
+        r_start = max(1, mid_row - 100);
+        r_end   = min(rows, mid_row + 50);
         cropped = double(img(r_start:r_end, :));
 
-        cropped_blurred = imgaussfilt(cropped, 3);
+        cropped_blurred = imgaussfilt(cropped, 2);
 
 
         % filteredImage = medfilt2(cropped, [5 5]);
         % maxIntensity = max(filteredImage(:));
 
-        figure(56757);imagesc(cropped_blurred);title(num2str(j))
+        % figure(56757);imagesc(cropped_blurred);title(num2str(j))
         % cropped = double(img);
 
         % For each row in the cropped region, find its maximum pixel value.
@@ -1972,33 +1937,7 @@ grid on;
 xtickangle(45);
 
 % Create a legend with only three entries (one per dataset).
-legend(h, { ...
-    '400nm', ...
-    % '425nm', ...
-    '450nm', ...
-    % '475nm', ...
-    '500nm', ...
-    % '525nm', ...
-    '550nm', ...
-    % '575nm', ...
-    '600nm', ...
-    % '625nm', ...
-    '650nm', ...
-    % '675nm', ...
-    '700nm', ...
-    % '725nm', ...
-    '750nm', ...
-    % '775nm', ...
-    '800nm', ...
-    % '825nm', ...
-    '850nm', ...
-    % '875nm', ...
-    '900nm', ...
-    % '925nm', ...
-    '950nm', ...
-    % '975nm', ...
-    '1000nm', ...
-    }, 'Location', 'west', 'FontSize', 24);
+legend(h, folders, 'Location', 'east', 'FontSize', 24);
 
 % Add tags under the x-axis.
 text(0, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
@@ -2008,11 +1947,13 @@ text(1, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
 
 
 hold off;
+% ylim([7 35]);
+% xlim([feedback_range_array(1) 3250]);
 % xlim([2.3 3.3]);
 % ylim([0 80]);
 
 %% test script for hyres hyperspectral
-parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\400';
+parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\1000';
 
 fileList = dir(fullfile(parent_path, '*.tiff'));
 nFiles = numel(fileList);
@@ -2026,28 +1967,29 @@ for j = 1:nFiles
         img = rgb2gray(img);
     end
 
-    img(img > 500) = 0;
+    img(img > 500000) = 0;
         
     % Crop a vertical region around the image center (±30 rows)
     [rows, ~] = size(img);
     mid_row = round(rows/2);
     r_start = max(1, mid_row - 100);
-    r_end   = min(rows, mid_row + 100);
-    % cropped = double(img(r_start:r_end, :));
+    r_end   = min(rows, mid_row + 50);
+    cropped = double(img(r_start:r_end, :));
 
-    cropped = double(img);
+    cropped = imgaussfilt(cropped, 2);
+
+    % cropped = double(img);
 
     figure(5678);
-    cropped = imgaussfilt(cropped, 1);
 
     imagesc(cropped);
-    title(num2str(j))
+    title(num2str(j));colorbar;
     % pause(1)
     
 end
 
 
-%% Event based hyperspectral peaks
+%% Event based hyperspectral peaks and rainbow plot
 data = load('D:\gen4-windows\recordings\event_based_hyperspectral_results.mat');
 
 range_plot = [2, 5];
@@ -2216,9 +2158,9 @@ ylabel('Wavelength (nm)', 'FontSize', 18, 'FontWeight', 'bold');
 
 % Add rotated text annotations for spectral regions.
 text(3.173, 700, 'Visible light', 'FontSize', 18, 'FontWeight', 'bold', ...
-    'HorizontalAlignment', 'left', 'Color', 'k', 'Rotation', 90);
+    'HorizontalAlignment', 'left', 'Color', 'w', 'Rotation', 90);
 text(3.173, 875, 'Infrared', 'FontSize', 18, 'FontWeight', 'bold', ...
-    'HorizontalAlignment', 'left', 'Color', 'k', 'Rotation', 90);
+    'HorizontalAlignment', 'left', 'Color', 'w', 'Rotation', 90);
 
 text(0, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
     'HorizontalAlignment', 'left', 'FontSize', 12, 'Color', 'r');
