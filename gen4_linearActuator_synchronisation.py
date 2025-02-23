@@ -1,103 +1,136 @@
-# import neuromorphic_drivers as nd
-# import serial
-# import time
-# import re
-
-# # --------------------------------------------------------------
-# # CONFIG
-# # --------------------------------------------------------------
-# TEENSY_PORT = "/dev/ttyACM2"  # Adjust as needed
-# BAUD = 115200
-# LOG_FILENAME = "/media/samiarja/USB/Optical_characterisation/merged_log.csv"
-# WAIT_BEFORE_STARTING_ACTUATOR = 5.0  # seconds to wait after opening camera
-# CYCLE_COUNT = 10  # Number of cycles the actuator should run
-
-# # Regex to parse lines like: "T=908455 us, feedback=376, unix_time=1700000000"
-# TEENSY_LINE_REGEX = re.compile(r"^T=(\d+)\s+us,\s*feedback=(\d+),\s*unix_time=(\d+)$")
-
-# # --------------------------------------------------------------
-# # Attempt to open Teensy (USB Serial)
-# # --------------------------------------------------------------
-# try:
-#     teensy = serial.Serial(TEENSY_PORT, BAUD, timeout=0.01)
-#     time.sleep(2)  # Wait for Teensy auto-reset
-#     print(f"Opened Teensy on {TEENSY_PORT}")
-# except Exception as e:
-#     print(f"Could not open Teensy port {TEENSY_PORT}: {e}")
-#     teensy = None
-
-# # --------------------------------------------------------------
-# # List available Prophesee devices & open log file
-# # --------------------------------------------------------------
-# nd.print_device_list()
-
-# log_file = open(LOG_FILENAME, "w", buffering=1)
-# log_file.write("entry_type,python_time_s,Gen4_time_us,teensy_time_us,feedback,unix_time,rising\n")
-
-# # --------------------------------------------------------------
-# # MAIN LOOP: Open the camera, read packets, start actuator after 5 s
-# # --------------------------------------------------------------
-# with nd.open() as device:
-#     print("Gen4 opened. Starting event loop...")
-    
-#     camera_start_time = time.time()
-#     actuator_started = False
-    
-#     try:
-#         for status, packet in device:
-#             elapsed = time.time() - camera_start_time
-
-#             # 1) Start the actuator after the wait time
-#             if not actuator_started and elapsed >= WAIT_BEFORE_STARTING_ACTUATOR:
-#                 print(f"Sending 'START {CYCLE_COUNT}' command to Teensy at t={elapsed:.2f}s")
-#                 if teensy:
-#                     teensy.write(f"START {CYCLE_COUNT}\n".encode())  # Send cycle count
-#                 actuator_started = True
-
-#             # 2) Read data from Teensy
-#             if teensy:
-#                 while teensy.in_waiting > 0:
-#                     line = teensy.readline().decode("utf-8", errors="replace").strip()
-#                     if line:
-#                         if line == "DONE":
-#                             print("Teensy finished all cycles. Shutting down...")
-#                             # device.close()  # Close the camera
-#                             log_file.close()  # Close the log file
-#                             teensy.close()  # Close Teensy serial
-#                             print("All systems safely shut down.")
-#                             exit(0)  # Exit program
-#                         match = TEENSY_LINE_REGEX.match(line)
-#                         if match:
-#                             teensy_time_us = int(match.group(1))
-#                             feedback = int(match.group(2))
-#                             unix_time = int(match.group(3))
-#                             now_s = time.time()
-#                             log_file.write(f"TEENSY,{now_s},NA,{teensy_time_us},{feedback},{unix_time},NA\n")
-#                             print(f"[Teensy] T={teensy_time_us} us, feedback={feedback}, unix_time={unix_time}")
-#                         else:
-#                             print(f"[Teensy RAW] {line}")
-
-#             # 3) Process trigger events from the event camera
-#             if "trigger_events" in packet:
-#                 for trig in packet["trigger_events"]:
-#                     Gen4_time_us = trig["t"]
-#                     rising_flag = trig["rising"]
-#                     now_s = time.time()
-#                     log_file.write(f"Gen4_TRIGGER,{now_s},{Gen4_time_us},NA,NA,NA,{rising_flag}\n")
-#                     print(f"[Trigger Events] Gen4_time={Gen4_time_us}, rising={rising_flag}")
-
-#     except KeyboardInterrupt:
-#         print("Interrupted by user.")
-#     finally:
-#         log_file.close()
-#         print(f"Log saved to {LOG_FILENAME}")
-
-
 import serial
 import time
 
+'''
+/*
+ * CODE TO AUTOMATE EVENT CAMERA
+ */
+
+#include <Arduino.h>
+
+// Remove EEPROM since we are using an array
+
+const int TRIGGER_PIN = 2;            // EVK4 trigger pin
+const unsigned long MOVE_INTERVAL_MS = 15000; // 15 seconds
+const int maxCycles = 60;             // Number of cycles to run before stopping
+
+bool moveForward = true;
+unsigned long lastMoveTime = 0;
+int cycleCount = 0;
+bool startCommandReceived = false;
+unsigned long long unix_time_offset = 0;  // Reference Unix time received from Python
+
+struct DataPoint {
+  unsigned long long timestamp;       // In microseconds
+  uint16_t feedback;
+};
+
+DataPoint dataPoints[maxCycles];      // Array to store the data points
+
+// Send collected data over Serial
+void sendDataToPython() {
+  Serial.println("DATA_START");
+  for (int i = 0; i < maxCycles; i++) {
+    Serial.print(dataPoints[i].timestamp);
+    Serial.print(",");
+    Serial.println(dataPoints[i].feedback);
+  }
+  Serial.println("DATA_END");
+  Serial.flush();
+}
+
+// These functions communicate with the motor controller on Serial1.
+void jrkSetTarget(uint16_t target) {
+  if (target > 3400) target = 3400;
+  Serial1.write(0xC0 + (target & 0x1F));
+  Serial1.write((target >> 5) & 0x7F);
+}
+
+uint16_t jrkGetFeedback() {
+  Serial1.write(0xE5);
+  Serial1.write(0x04);
+  Serial1.write(0x02);
+  // Wait until two bytes are available:
+  while (Serial1.available() < 2);
+  // First byte is the high part:
+  uint8_t highByte = Serial1.read();
+  uint8_t lowByte  = Serial1.read();
+  return (uint16_t)(highByte + 256U * lowByte);
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial1.begin(9600);
+  pinMode(TRIGGER_PIN, OUTPUT);
+  // digitalWrite(TRIGGER_PIN, LOW);
+
+  Serial.println("Teensy ready. Waiting for Unix time from Python...");
+
+  // Wait for a Unix timestamp from Python (make sure the Python code sends a newline-terminated timestamp)
+  while (!Serial.available());
+  String input = Serial.readStringUntil('\n');
+  unix_time_offset = strtoull(input.c_str(), NULL, 10);
+
+  Serial.print("Received Unix timestamp: ");
+  Serial.println(unix_time_offset);
+}
+
+unsigned long long getUnixTimestamp() {
+  // Convert micros() (microseconds) to nanoseconds before adding the offset.
+  return unix_time_offset + ((unsigned long long)micros() * 1000ULL);
+}
+
+
+void loop() {
+  // Wait for the "START" command if not already received
+  if (!startCommandReceived && Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd.equalsIgnoreCase("START")) {
+      startCommandReceived = true;
+      Serial.println("READY");
+    }
+  }
+  
+  if (!startCommandReceived) {
+    return;
+  }
+
+  // Every MOVE_INTERVAL_MS milliseconds, execute a cycle (up to maxCycles)
+  if (millis() - lastMoveTime >= MOVE_INTERVAL_MS && cycleCount < maxCycles) {
+    lastMoveTime = millis();
+    uint16_t target = moveForward ? 3200 : 2000;
+    jrkSetTarget(target);
+    
+    // Pulse the trigger pin
+    digitalWrite(TRIGGER_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIGGER_PIN, LOW);
+
+    // Record the current Unix time and the feedback from the controller
+    unsigned long long unix_time = getUnixTimestamp();
+    uint16_t feedback = jrkGetFeedback();
+
+    // Save the data in our array
+    dataPoints[cycleCount].timestamp = unix_time;
+    dataPoints[cycleCount].feedback = feedback;
+
+    moveForward = !moveForward;
+    cycleCount++;
+  }
+
+  
+  // Once all cycles are complete, send the data to Python.
+  if (cycleCount >= maxCycles) {
+    sendDataToPython();
+    Serial.println("DONE");
+    Serial.flush();
+  }
+}
+'''
+
 # Configuration
-TEENSY_PORT = "/dev/ttyACM0"  # Change as needed for your system.
+TEENSY_PORT = "COM7" #"/dev/ttyACM0"  # Change as needed for your system.
 BAUD = 115200
 LOG_FILENAME = "teensy_data_log.txt"
 

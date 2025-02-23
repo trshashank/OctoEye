@@ -1,21 +1,34 @@
 import json
 import numpy as np
-import octoeye
 import matplotlib.pyplot as plt
+from pathlib import Path
+import octoeye
+import faery
+import re
 
-# ------------------------------
-# CONFIGURATION / FILE PATHS
-# ------------------------------
 
-event_filename = "2025-02-08T11-14-11Z"
-parent_directory = "/home/samiarja/Desktop/PhD/Code/gitlib/gen4/recordings/red_dot"
-gen4_triggers_path = f"{parent_directory}/00051508_control_events.jsonl"
+wavelength                      = 800
+PLOT_RANGE                      = (450,650) #(700,900)
+parent_directory                = f"D:/gen4-windows/recordings/{wavelength}"
+event_filename                  = next(Path(f"{parent_directory}").glob("*_dvs_without_hot_pixels_crop.es")).stem
+gen4_triggers_path              = next(Path(f"{parent_directory}").glob("*.jsonl")).stem
+teensy_log_path                 = f"{parent_directory}/motor_triggers.txt"
 
-teensy_log_path = f"{parent_directory}/teensy_data_log.txt"
-output_with_focal_length_path = f"{parent_directory}/teensy_data_log_aligned_timestamp.txt"
+stream = faery.events_stream_from_file(
+    faery.dirname.parent / f"{parent_directory}" / f"{event_filename}.es"
+)
 
-width, height, events = octoeye.read_es_file(f"{parent_directory}/{event_filename}.es")
-sensor_size = (width, height)
+events = stream.to_array()
+sensor_size = stream.inner_dimensions
+
+event_rate = faery.events_stream_from_file(
+    faery.dirname.parent / f"{parent_directory}" / f"{event_filename}.es"
+).to_event_rate()
+
+# event_rate = faery.events_stream_from_file(
+#     faery.dirname.parent / f"{parent_directory}" / f"{event_filename}.es"
+# ).remove_off_events().to_event_rate()
+
 
 # ------------------------------
 # PARAMETERS FOR DYNAMIC CONVERSION
@@ -23,8 +36,6 @@ sensor_size = (width, height)
 feedback_min = 284     # At this raw feedback, camera is farthest away.
 feedback_max = 3965    # At this raw feedback, camera is closest.
 distance_at_min_mm = 92  # When feedback is at minimum, camera is 920 mm (92 cm) away from the ball lens.
-# The dynamic conversion formula is:
-#   focal_length_mm = (feedback_max - feedback_value) / (feedback_max - feedback_min) * distance_at_min_mm
 feedback_range = feedback_max - feedback_min
 
 # ------------------------------
@@ -32,8 +43,8 @@ feedback_range = feedback_max - feedback_min
 # ------------------------------
 # Assuming the Teensy log file has two columns: raw_timestamp (ns) and feedback (raw value)
 teensy_data = np.loadtxt(teensy_log_path, delimiter=",", dtype=int)
-raw_timestamps = teensy_data[:, 0]   # in nanoseconds
-feedback_values = teensy_data[:, 1]
+unix_motor_timestamps = teensy_data[:, 0]   # in nanoseconds
+motor_feedback_values = teensy_data[:, 1]
 
 # ------------------------------
 # PARSE GEN4 TRIGGERS (EVENT CAMERA)
@@ -42,10 +53,14 @@ rising_events = []
 falling_events = []
 start_recording_info = {}
 
-# Read and parse the JSONL file
-with open(gen4_triggers_path, "r") as file:
+def fix_invalid_escapes(s):
+    # Replace any backslash that is not followed by a valid JSON escape character
+    return re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', s)
+
+with open(f"{parent_directory}/{gen4_triggers_path}.jsonl", "r") as file:
     for line in file:
-        data = json.loads(line.strip())
+        fixed_line = fix_invalid_escapes(line.strip())
+        data = json.loads(fixed_line)
         
         if data["type"] == "start_recording":
             start_recording_info = {
@@ -72,65 +87,151 @@ events["t"] = events["t"] + initial_t
 # COMPUTE OFFSET CORRECTION
 # ------------------------------
 # We assume that the first Teensy event and the first Gen4 rising event correspond to the same moment.
-offset = raw_timestamps[0] - rising_events[0]['system_timestamp']
-print(f"Computed offset (Teensy - Camera) = {offset} ns")
-print("............................................")
+offset = unix_motor_timestamps[0] - rising_events[0]['system_timestamp']
+
+events_timestamp = [event["t"] for event in rising_events]
+events_unix_timestamp = [event["system_timestamp"] for event in rising_events]
 
 # ------------------------------
 # COMPUTE CORRECTED TIMESTAMPS
 # ------------------------------
 # Apply offset correction and convert from nanoseconds to seconds.
-corrected_timestamps = raw_timestamps - offset
-corrected_timestamps_sec = corrected_timestamps / 1_000_000_000.0
+offset_corrected_motor_timestamps = unix_motor_timestamps - offset
 
 # ------------------------------
 # CONVERT FEEDBACK TO FOCAL LENGTH (in mm)
 # ------------------------------
 # Dynamic conversion: as the raw feedback increases from 284 to 3965, the camera moves from 920 mm away to 0 mm.
-focal_length_mm = (feedback_max - feedback_values) / feedback_range * distance_at_min_mm
+focal_length_in_mm = (feedback_max - motor_feedback_values) / feedback_range * distance_at_min_mm
 
-# Save new log file with four columns: raw_timestamp, feedback, corrected_timestamp_sec, focal_length_mm
-data_with_focal_length = np.column_stack((raw_timestamps, feedback_values, corrected_timestamps_sec * 1_000_000_000.0, focal_length_mm))
-header_line_focal = "raw_timestamp,feedback,corrected_timestamp_sec,focal_length_mm"
-np.savetxt(output_with_focal_length_path, data_with_focal_length, delimiter=",", fmt="%d,%d,%.9f,%.3f",
+# Save new log file with four columns: raw_timestamp, feedback, corrected_timestamp_sec, focal_length_in_mm
+data_with_focal_length = np.column_stack((unix_motor_timestamps, 
+                                          offset_corrected_motor_timestamps,
+                                          events_unix_timestamp,
+                                          events_timestamp,
+                                          motor_feedback_values,  
+                                          focal_length_in_mm/10))
+
+header_line_focal = "unix_motor_timestamps,offset_corrected_motor_timestamps,events_unix_timestamp,events_timestamp,motor_feedback_values,focal_length_in_cm"
+np.savetxt(f"{parent_directory}/aligned_timestamps.txt", data_with_focal_length, delimiter=",", fmt="%d,%d,%d,%d,%d,%.6f",
            header=header_line_focal, comments="")
-print(f"Corrected data log with focal length saved to {output_with_focal_length_path}")
 
 # ------------------------------
 # PLOT FOCAL LENGTH VS. CORRECTED TIMESTAMP
 # ------------------------------
-# plt.style.use('seaborn-darkgrid')
-
 ##### label the events with the focal length using the correct timstamp
-# find the closest real event timestamp based on the corrected teensy unix timestamp
-# label all the either from 35.815 to 13.421 or from 13.421 to 35.815
 
-plt.figure(figsize=(12, 8))
+# --- Compute Focal Length Per Event via Linear Interpolation ---
+focal_length_per_events = np.empty(len(events["x"]))
+focal_length_per_events[:] = np.nan
+for idx in range(len(unix_motor_timestamps) - 1):
+    first_timestamp = events_timestamp[idx]
+    second_timestamp = events_timestamp[idx + 1]
+    
+    first_focal_len = focal_length_in_mm[idx] / 10
+    second_focal_len = focal_length_in_mm[idx + 1] / 10
 
-# Plot the dynamic focal length data
-# (Choose a visually appealing color, here a deep blue from the default palette)
-plt.plot(corrected_timestamps_sec, focal_length_mm, 'o-', 
-         color='#1f77b4', markersize=8, linewidth=2, label="Focal Length (mm)")
+    event_idx = np.where((events["t"] >= first_timestamp) & (events["t"] <= second_timestamp))[0]
+    if event_idx.size == 0:
+        continue
 
-# Add horizontal dashed lines for the maximum and minimum focal lengths
-# Maximum: 92 cm (camera farthest away)
-plt.axhline(y=max(focal_length_mm), color='black', linestyle='--', linewidth=1.5, 
-            label=f'Max Focal Length ({max(focal_length_mm):.2f} mm)')
-# Minimum: 0 cm (camera closest)
-plt.axhline(y=min(focal_length_mm), color='black', linestyle='--', linewidth=1.5, 
-            label=f'Min Focal Length ({min(focal_length_mm):.2f} mm)')
+    sub_t = events["t"][event_idx]
+    fraction = (sub_t - first_timestamp) / (second_timestamp - first_timestamp)
+    
+    # Interpolate focal length for these events.
+    focal_length_per_events[event_idx] = first_focal_len + fraction * (second_focal_len - first_focal_len)
+    # Optionally, print time diff info:
+    # print(f"time diff {idx}: {(events['t'][event_idx][-1] - events['t'][event_idx][0])/1e6} s, Events: {len(event_idx)}")
+
+# --- Convert Timestamps to Seconds ---
+events_seconds = events["t"] / 1e6  
+event_rate_seconds = (event_rate.timestamps + initial_t) / 1e6
+
+# --- Create Plot ---
+fig, ax1 = plt.subplots(figsize=(12, 6))
+# Plot focal length on the left y-axis.
+ax1.plot(events_seconds, focal_length_per_events, label="Focal Length", color="red", lw=2)
+ax1.set_xlabel("Time (s)")
+ax1.set_ylabel("Focal Length (cm)", color="red")
+ax1.tick_params(axis='y', labelcolor='red')
+
+# Create a second y-axis for the event rate samples.
+ax2 = ax1.twinx()
+ax2.plot(event_rate_seconds, event_rate.samples, label="Event Rate", color="blue", lw=2)
+ax2.set_ylabel("Event Rate (events/s)", color="blue")
+ax2.tick_params(axis='y', labelcolor='blue')
+
+# Limit the x-axis to a specific window (here, from 400 to 600 s).
+ax1.set_xlim(PLOT_RANGE)
+# ax2.set_ylim((0,1000))
 
 
-# Labeling and titling
-plt.xlabel("Timestamp (Aligned) - seconds", fontsize=14, fontweight='bold')
-plt.ylabel("Focal Length - mm", fontsize=14, fontweight='bold')
-# plt.title("Dynamic Focal Length vs. Time", fontsize=16, fontweight='bold')
+focal_points = []
+peak_times_array = []
+# --- For Each Focal Range: Find Maximum Event Rate and Annotate ---
+# Loop through each focal range defined by the motor timestamps.
+for idx in range(len(unix_motor_timestamps) - 1):
+    first_timestamp = events_timestamp[idx]
+    second_timestamp = events_timestamp[idx + 1]
+    
+    # Create a mask for event rate times within this focal range.
+    mask = ((event_rate.timestamps + initial_t) >= first_timestamp) & ((event_rate.timestamps + initial_t) <= second_timestamp)
+    indices = np.where(mask)[0]
+    if indices.size == 0:
+        continue
 
-# Improve the legend appearance
-plt.legend(fontsize=12, frameon=True, edgecolor='black')
+    # Find the index of the maximum event rate within this segment.
+    local_peak_idx = indices[np.argmax(event_rate.samples[indices])]
+    
+    # Determine the time of the peak event rate (in seconds).
+    peak_time = (event_rate.timestamps[local_peak_idx] + initial_t) / 1e6
+    # Only annotate peaks that fall within the current xlim window.
+    if peak_time < PLOT_RANGE[0] or peak_time > PLOT_RANGE[1]:
+        continue
 
-# Optional: Fine-tune grid lines and layout for clarity
+    # Interpolate to find the focal length at the time of the peak.
+    focal_at_peak = np.interp(peak_time, events_seconds, focal_length_per_events)
+    
+    # Print the details in the terminal.
+    print(f"Focal range [{first_timestamp/1e6:.2f} s, {second_timestamp/1e6:.2f} s] -> "
+          f"Peak at {peak_time:.4f} s, Focal Length = {focal_at_peak:.4f}")
+    
+    # Draw a vertical dashed line at the event rate peak.
+    ax1.axvline(x=peak_time, color='green', linestyle='--', lw=1.5)
+    
+    # Mark the intersection point on the focal length curve.
+    ax1.plot(peak_time, focal_at_peak, 'o', color='green', markersize=8)
+    
+    # Annotate the intersection with the focal length value (4 decimals).
+    y_top = ax1.get_ylim()[1] - 0.05 * (ax1.get_ylim()[1] - ax1.get_ylim()[0])
+    ax1.text(peak_time, y_top, f"{focal_at_peak:.4f}", color='green',
+             fontsize=10, ha="center", va="top", backgroundcolor="w", rotation=90)
+    
+    peak_times_array.append(peak_time)
+    focal_points.append(focal_at_peak)
+
+focal_timestamps_data = np.column_stack((peak_times_array, focal_points))
+np.savetxt(f"{parent_directory}/focal_timestamps.txt", focal_timestamps_data, fmt="%.4f", header="timestamp focal_length", comments="")
+
+# --- Final Plot Formatting ---
+plt.title(f"Focal Length and Event Rate - Wavelength: {wavelength}nm")
 plt.grid(True, linestyle='--', linewidth=0.5)
-plt.tight_layout()
+fig.tight_layout()
+plt.savefig(f"{parent_directory}/focal_length_vs_eventrate.png")
+plt.show()
 
-plt.savefig(f"{parent_directory}/focal_length_vs_time.png")
+### TODO
+# ## save a cropped image of the circle
+# focus_timestamp = focal_timestamps_data[4,0]
+# timestamp_offset = 5e3
+# time_window = np.where(np.logical_and(events["t"] >= focus_timestamp,
+#                                       events["t"] >= focus_timestamp + timestamp_offset))
+# focused_events = events[time_window]
+
+# cumulative_map_object = octoeye.accumulate_py(sensor_size,(0,0),events[time_window])
+# cumulative_image  = octoeye.render(
+#             cumulative_map_object,
+#             colormap_name="magma",
+#             gamma=lambda image: image ** (1 / 3),
+#         )
+# cumulative_image.save(f"{parent_directory}/focal_points_cumulative_image.png")
