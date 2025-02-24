@@ -2,14 +2,14 @@ import faery
 from pathlib import Path
 import octoeye
 
-wavelength    = 700
+wavelength    = 400
 parent_folder = f"D:/gen4-windows/recordings/{wavelength}"
 filename = next(Path(f"{parent_folder}").glob("*.es")).stem
 
 
 ########################### EVENT CROPPING #########################
 print("Processing cropping")
-left_dim, right_dim, top_dim, bottom_dim = octoeye.center_crop_bounds(width=1280, height=720, crop_size=100)
+left_dim, right_dim, top_dim, bottom_dim = octoeye.center_crop_bounds(width=1280, height=720, crop_size=500)
 (
     faery.events_stream_from_file(
         faery.dirname.parent / f"{parent_folder}" / f"{filename}.es",

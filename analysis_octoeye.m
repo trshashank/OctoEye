@@ -361,7 +361,7 @@ legend([h_red, h_green, h_blue], {'650nm wavelength', '550nm wavelength', '450nm
 hold off;ylim([100 950]);
 
 
-%% Greylevel hyperspectral analysis
+%% Greylevel hyperspectral analysis (old)
 feedback_range_array = 2600:1:3000;
 parent_path = 'D:\Optical_characterisation\hyperspectral_new\';
 folders = {
@@ -420,37 +420,6 @@ colors   = {
             '#030000',%1000nm
             };             
 
-% Quantum efficiency factors for each folder:
-% For folder "450": use blue QE, "550": green QE, "650": red QE.
-quantum_efficiency_cam = [ 
-                            1, ... %400nm
-                            % 1, ... %425nm
-                            1, ... %450nm
-                            % 1,... %475nm
-                            1, ... %500nm
-                            % 1, ... %525nm
-                            1, ... %550nm
-                            % 1, ... % 575nm
-                            1, ... %600nm
-                            % 1,... %625nm 
-                            1, ... %650nm
-                            % 1, ... %675nm
-                            1, ... %700nm
-                            % 1,...%725nm
-                            1,...%750nm
-                            % 1,...%775nm
-                            1,...%800nm
-                            % 1,...%825nm
-                            1,...%850nm
-                            % 1,...%875nm
-                            1,...%900nm
-                            % 1,...%925nm
-                            1,...%950nm
-                            % 1,...%975nm
-                            1,...%1000nm
-                            ]; % BCGR
-
-QE = quantum_efficiency_cam;
 
 % Feedback conversion parameters
 feedback_min = 284;       % At this raw feedback, camera is farthest away.
@@ -499,13 +468,13 @@ for i = 1:numel(folders)
             img = rgb2gray(img);
         end
 
-        img(img > 60000) = 0;
+        img(img > 65535) = 0;
         
         % Crop a vertical region around the image center (±30 rows)
         [rows, ~] = size(img);
         mid_row = round(rows/2);
-        r_start = max(1, mid_row - 300);
-        r_end   = min(rows, mid_row + 300);
+        r_start = max(1, mid_row - 100);
+        r_end   = min(rows, mid_row + 50);
         % cropped = double(img(r_start:r_end, :));
 
         cropped = double(img);
@@ -518,7 +487,7 @@ for i = 1:numel(folders)
         
         % Apply the appropriate quantum efficiency correction.
         % Folder "450" uses blue (QE(1)), "550" uses green (QE(2)), "650" uses red (QE(3)).
-        peak_corrected = peak / QE(i);
+        peak_corrected = peak;
         
         % Store the focal length and corrected peak value.
         focal_vals(j) = focal_length_mm;
@@ -564,33 +533,7 @@ grid on;
 xtickangle(45);
 
 % Create a legend with only three entries (one per dataset).
-legend(h, { ...
-    '400nm', ...
-    % '425nm', ...
-    '450nm', ...
-    % '475nm', ...
-    '500nm', ...
-    % '525nm', ...
-    '550nm', ...
-    % '575nm', ...
-    '600nm', ...
-    % '625nm', ...
-    '650nm', ...
-    % '675nm', ...
-    '700nm', ...
-    % '725nm', ...
-    '750nm', ...
-    % '775nm', ...
-    '800nm', ...
-    % '825nm', ...
-    '850nm', ...
-    % '875nm', ...
-    '900nm', ...
-    % '925nm', ...
-    '950nm', ...
-    % '975nm', ...
-    '1000nm', ...
-    }, 'Location', 'west', 'FontSize', 24);
+legend(h, folders, 'Location', 'west', 'FontSize', 24);
 
 % Add tags under the x-axis.
 text(0, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
@@ -600,98 +543,225 @@ text(1, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
 
 hold off;xlim([3.28 3.365]);ylim([450 1100]);
 
-%% 13x13 grid for each wavelength and focal length
-% Greylevel hyperspectral analysis
-feedback_range_array = 2600:10:3400;
-pixel_intensity_limit = 1200; %65535/2;
-
-parent_path = 'D:\Optical_characterisation\Hyperspectral_new\';
-% Use 12 folders (wavelengths)
+%% Grelevel hyperspectral analysis (NEW!!!!!!!!!!!!!!!!!)
+feedback_range_array = 2800:1:3250;
+pixel_intensity_limit = 65535;
+parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\';
 folders = {
-    '400',...
-    % '425',...
-    '450',...
-    % '475', ...
+    '400', ...
+    '450', ...
     '500', ...
-    % '525',...
-    '550',...
-    % '575',...
-    '600',...
-    % '625', ...
-    '650',...
-    % '675',...
-    '700',...
-    % '725',...
-    '750',...
-    % '775',...
-    '800',...
-    % '825',...
-    '850',...
-    % '875',...
-    '900',...
-    % '925',...
-    '950',...
-    % '975',...
-    '1000'
-    };      % Folder names (wavelengths)
+    '550', ...
+    '600', ...
+    '650', ...
+    '700', ...
+    '750', ...
+    '800', ...
+    '850', ...
+    '900', ...
+    '950', ...
+    '1000',
+    };
+
 
 colors   = {
             '#610061', ... %400nm
-            % '#5400ff',... %425nm
             'b',...       % 450nm
-            % 'c',...       % 475nm
             '#00ff92',... %500nm
-            % '#4aff00', ... %525nm
             'g',...       %550nm
-            % '#f0ff00', ... % 575nm
             '#ffbe00', ... %600nm
-            % '#ff6300', ... 625nm
             'r',...       % 650nm
-            % '#ff0000', ... %675nm
             '#e90000', ... %700nm
-            % '#d10000', ... %725nm
             '#a10000',...%750nm
-            % '#a10000',...%775nm
             '#6d0000',...%800nm
-            % '#4f1515',...%825nm
             '#3b0f0f',...%850nm
-            % '#2b0b0b',...%875nm
             '#210808',...%900nm
-            % '#1c0606',...%925nm
             '#1c0404',...%950nm
-            % '#140202',...%975nm
             '#030000',%1000nm
             };             
 
 % Quantum efficiency factors for each folder:
 % For folder "450": use blue QE, "550": green QE, "650": red QE.
-QE_all = [ 
+quantum_efficiency_cam = [ 
                             1, ... %400nm
-                            % 1, ... %425nm
                             1, ... %450nm
-                            % 1,... %475nm
                             1, ... %500nm
-                            % 1, ... %525nm
                             1, ... %550nm
-                            % 1, ... % 575nm
                             1, ... %600nm
-                            % 1,... %625nm 
                             1, ... %650nm
-                            % 1, ... %675nm
                             1, ... %700nm
-                            % 1,...%725nm
                             1,...%750nm
-                            % 1,...%775nm
                             1,...%800nm
-                            % 1,...%825nm
                             1,...%850nm
-                            % 1,...%875nm
                             1,...%900nm
-                            % 1,...%925nm
                             1,...%950nm
-                            % 1,...%975nm
                             1,...%1000nm
-                            ]; % BCGR
+                            ];
+
+QE = quantum_efficiency_cam;
+
+% Feedback conversion parameters
+feedback_min = 284;       % At this raw feedback, camera is farthest away.
+feedback_max = 3965;      % At this raw feedback, camera is closest.
+distance_at_min_mm = 92;  % When feedback is at minimum, camera is 920 mm away.
+feedback_range = feedback_max - feedback_min;
+
+% Preallocate cell arrays for storing data from each folder.
+focal_mm_all = cell(1, numel(folders));
+peak_all     = cell(1, numel(folders));
+
+% Loop Over Each Folder
+for i = 1:numel(folders)
+    currFolder = folders{i};
+    fileList = dir(fullfile(parent_path, currFolder, '*.tiff'));
+    nFiles = numel(fileList);
+    
+    % Preallocate arrays for the current folder.
+    focal_vals = zeros(nFiles,1);  % focal lengths (in mm)
+    peak_vals  = zeros(nFiles,1);  % corrected peak intensities
+    
+    % -- 1) Sort the fileList by the numeric part of the filename --
+    % Extract the numeric portion from each file name using a regexp and convert to double
+    numbers = cellfun(@(nm) str2double(regexp(nm, '\d+', 'match', 'once')), {fileList.name});
+    
+    % Sort and reorder the struct array
+    [~, sortIdx] = sort(numbers);
+    fileList = fileList(sortIdx);
+    
+    % -- 2) Now, process each file in sorted order --
+    for j = 1:nFiles
+        fileName = fileList(j).name;
+        [~, name] = fileparts(fileName);
+    
+
+        % feedback_value = str2double(name);
+        feedback_value = feedback_range_array(j);
+
+        % Convert raw feedback to focal length (mm) using the dynamic formula:
+        %   focal_length_mm = (feedback_max - feedback_value) / (feedback_max - feedback_min) * distance_at_min_mm
+        focal_length_mm = (feedback_max - feedback_value) / feedback_range * distance_at_min_mm;
+        
+        % Read the image.
+        img = imread(fullfile(parent_path, currFolder, fileName));
+        if size(img,3) == 3
+            img = rgb2gray(img);
+        end
+
+        img(img > pixel_intensity_limit) = 0;
+        
+        % Crop a vertical region around the image center (±30 rows)
+        [rows, ~] = size(img);
+        mid_row = round(rows/2);
+        r_start = max(1, mid_row - 100);
+        r_end   = min(rows, mid_row + 50);
+        cropped = double(img(r_start:r_end, :));
+
+        cropped_blurred = imgaussfilt(cropped, 2);
+
+        % For each row in the cropped region, find its maximum pixel value.
+        rowMaxima = max(cropped_blurred, [], 2);
+        [peak, idx] = max(rowMaxima);
+
+
+        % figure(45654);imagesc(cropped);colorbar;title(fileName)
+
+        peak_corrected = peak;
+        
+        % Store the focal length and corrected peak value.
+        focal_vals(j) = focal_length_mm;
+        peak_vals(j)  = peak_corrected;
+    end
+    
+    % Sort the data by focal length (x-axis)
+    [focal_sorted, sortIdx] = sort(focal_vals);
+    peak_sorted = peak_vals(sortIdx);
+    
+    focal_mm_all{i} = focal_sorted;
+    peak_all{i}     = peak_sorted;
+end
+
+% Plotting: Combine All Datasets in a Visually Appealing Figure
+figure(456457); clf; hold on;
+set(gca, 'LineWidth', 2, 'FontSize', 16);  % Thicker axes and larger tick labels
+
+% Preallocate handles for the legend (one per dataset)
+h = gobjects(numel(folders),1);
+
+for i = 1:numel(folders)
+    % Convert focal lengths from mm to cm.
+    x = focal_mm_all{i} / 10;  % x-axis: focal length in cm
+    y = peak_all{i};           % y-axis: corrected peak intensity
+    col = colors{i};
+    
+    % Plot a low-opacity shaded area under the curve.
+    area(x, y, 'FaceColor', col, 'FaceAlpha', 0.2, 'EdgeAlpha', 0, 'HandleVisibility','off');
+    
+    % Overlay the line with markers.
+    h(i) = plot(x, y,'Color', col, 'LineWidth', 2.5, 'MarkerSize', 8);
+end
+
+% Reverse the x-axis so that higher focal lengths (cm) appear on the left.
+set(gca, 'XDir', 'reverse');
+
+xlabel('Focal Length (cm)', 'FontSize', 24);
+ylabel('Intensity', 'FontSize', 24);
+grid on;
+
+% Rotate the x-axis tick labels by 45°.
+xtickangle(45);
+
+% Create a legend with only three entries (one per dataset).
+legend(h, folders, 'Location', 'east', 'FontSize', 24);
+
+% Add tags under the x-axis.
+text(0, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
+    'HorizontalAlignment', 'left', 'FontSize', 24, 'Color', 'r');
+text(1, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
+    'HorizontalAlignment', 'right', 'FontSize', 24, 'Color', 'r');
+
+
+hold off;
+xlim([1.9 2.9]);
+ylim([5 37]);
+
+%% 13x13 grid for each wavelength and focal length
+pixel_intensity_limit = 35;
+
+feedback_range_array = 2800:1:3250;
+parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\';
+
+folders = {
+    '400', ...
+    '450', ...
+    '500', ...
+    '550', ...
+    '600', ...
+    '650', ...
+    '700', ...
+    '750', ...
+    '800', ...
+    '850', ...
+    '900', ...
+    '950', ...
+    '1000',
+    };
+
+
+colors   = {
+            '#610061', ... %400nm
+            'b',...       % 450nm
+            '#00ff92',... %500nm
+            'g',...       %550nm
+            '#ffbe00', ... %600nm
+            'r',...       % 650nm
+            '#e90000', ... %700nm
+            '#a10000',...%750nm
+            '#6d0000',...%800nm
+            '#3b0f0f',...%850nm
+            '#210808',...%900nm
+            '#1c0404',...%950nm
+            '#030000',%1000nm
+            };      
 
 % Feedback conversion parameters (not used in the subfigure display)
 feedback_min = 284;
@@ -715,10 +785,6 @@ for i = 1:nFolders
     fileList = dir(fullfile(parent_path, currFolder, '*.tiff'));
     fileListAll{i} = fileList;
     nFiles = numel(fileList);
-    
-    % Preallocate arrays for the current folder.
-
-    % feedback_value = feedback_range_array(j);
 
     focal_vals = zeros(nFiles,1);
     peak_vals  = zeros(nFiles,1);
@@ -732,8 +798,7 @@ for i = 1:nFolders
     % -- 2) Now, process each file in sorted order --
     for j = 1:nFiles
         fileName = fileList(j).name;
-        [~, name] = fileparts(fileName);  % e.g. "image_3"
-    
+        [~, name] = fileparts(fileName);
 
         % feedback_value = str2double(name);
         feedback_value = feedback_range_array(j);
@@ -745,18 +810,20 @@ for i = 1:nFolders
         
         img(img > pixel_intensity_limit) = 0;
 
-        [rows, cols] = size(img);
-        mid_row = round(rows);
-        r_start = max(1, mid_row - vertCrop_half);
-        r_end   = min(rows, mid_row + vertCrop_half);
-        % cropped = double(img(r_start:r_end, :));
-        cropped = double(img);
+        [rows, ~] = size(img);
+        mid_row = round(rows/2);
+        r_start = max(1, mid_row - 100);
+        r_end   = min(rows, mid_row + 50);
+        cropped = double(img(r_start:r_end, :));
 
-        rowMaxima = max(cropped, [], 2);
-        peak = max(rowMaxima);
+        cropped_blurred = imgaussfilt(cropped, 2);
+
+        % For each row in the cropped region, find its maximum pixel value.
+        rowMaxima = max(cropped_blurred, [], 2);
+        [peak, idx] = max(rowMaxima);
         
         % Apply QE correction.
-        peak_vals(j) = peak / QE_all(i);
+        peak_vals(j) = peak;
         
     end
     
@@ -775,7 +842,7 @@ end
 % Parameters for the ROI (circle) extraction in each image:
 ROI_size = 100;        % Use a 30x30 region (centered on the image center) to search for the brightest pixel.
 ROI_half = ROI_size / 2;
-crop_radius = 15;     % Final crop: (2*crop_radius+1) x (2*crop_radius+1) region around the detected peak.
+crop_radius = 35;     % Final crop: (2*crop_radius+1) x (2*crop_radius+1) region around the detected peak.
 
 % Subplot parameters for subtightplot:
 gap    = [0.005 0.005];  % [vertical_gap, horizontal_gap]
@@ -813,7 +880,7 @@ for row = 1:nFolders
         end
         
         % Convert image to double and apply QE correction for the current folder.
-        img = double(img) / QE_all(col);
+        img = double(img);
         [r, c] = size(img);
         center_y = round(r/2);
         center_x = round(c/2);
@@ -851,7 +918,7 @@ for row = 1:nFolders
         % Compute the subplot index in the 12x12 grid.
         subplot_index = (row - 1) * nFolders + col;
         subtightplot(nFolders, nFolders, subplot_index, gap, marg_h, marg_w);
-        imshow(imgaussfilt(final_ROI, 1), [0 1100]);
+        imshow(imgaussfilt(final_ROI, 1), [0 pixel_intensity_limit]);
         % red_profile_3= imgaussfilt(red_profile_3, 1);
         
         % If this cell lies on the diagonal, add a thick colored boundary.
@@ -869,95 +936,43 @@ end
 %% ----------------------- Hyperspectral Rainbow Composite -----------------------
 
 % SETTINGS & DEFINITIONS
-feedback_range_array = 2600:10:3400;
-parent_path = 'D:\Optical_characterisation\Hyperspectral_new\';
+feedback_range_array = 2800:1:3250;
+parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\';
+
 folders = {
-    '400',...
-    % '425',...
-    '450',...
-    % '475', ...
+    '400', ...
+    '450', ...
     '500', ...
-    % '525',...
-    '550',...
-    % '575',...
-    '600',...
-    % '625', ...
-    '650',...
-    % '675',...
-    '700',...
-    % '725',...
-    '750',...
-    % '775',...
-    '800',...
-    % '825',...
-    '850',...
-    % '875',...
-    '900',...
-    % '925',...
-    '950',...
-    % '975',...
-    '1000'
-    };      % Folder names (wavelengths)
+    '550', ...
+    '600', ...
+    '650', ...
+    '700', ...
+    '750', ...
+    '800', ...
+    '850', ...
+    '900', ...
+    '950', ...
+    '1000',
+    };
+
 
 colors   = {
             '#610061', ... %400nm
-            % '#5400ff',... %425nm
             'b',...       % 450nm
-            % 'c',...       % 475nm
             '#00ff92',... %500nm
-            % '#4aff00', ... %525nm
             'g',...       %550nm
-            % '#f0ff00', ... % 575nm
             '#ffbe00', ... %600nm
-            % '#ff6300', ... 625nm
             'r',...       % 650nm
-            % '#ff0000', ... %675nm
             '#e90000', ... %700nm
-            % '#d10000', ... %725nm
             '#a10000',...%750nm
-            % '#a10000',...%775nm
             '#6d0000',...%800nm
-            % '#4f1515',...%825nm
             '#3b0f0f',...%850nm
-            % '#2b0b0b',...%875nm
             '#210808',...%900nm
-            % '#1c0606',...%925nm
             '#1c0404',...%950nm
-            % '#140202',...%975nm
             '#030000',%1000nm
-            };             
+            };                  
 
-% Quantum efficiency factors for each folder:
-% For folder "450": use blue QE, "550": green QE, "650": red QE.
-quantum_efficiency_cam = [ 
-                            0.95, ... %400nm
-                            % 1, ... %425nm
-                            1, ... %450nm
-                            % 1,... %475nm
-                            1, ... %500nm
-                            % 1, ... %525nm
-                            1, ... %550nm
-                            % 1, ... % 575nm
-                            1, ... %600nm
-                            % 1,... %625nm 
-                            1.1, ... %650nm
-                            % 1, ... %675nm
-                            1, ... %700nm
-                            % 1,...%725nm
-                            1,...%750nm
-                            % 1,...%775nm
-                            1,...%800nm
-                            % 1,...%825nm
-                            1,...%850nm
-                            % 1,...%875nm
-                            1,...%900nm
-                            % 1,...%925nm
-                            1,...%950nm
-                            % 1,...%975nm
-                            1,...%1000nm
-                            ]; % BCGR
 
-QE = quantum_efficiency_cam;
 
 % Feedback conversion parameters (to compute focal length from filename feedback value)
 feedback_min = 284;       % Minimum raw feedback (farthest)
@@ -1004,21 +1019,30 @@ for i = 1:nFolders
         end
         
         % Crop a vertical region around the image center (±30 rows)
-        [rowsImg, ~] = size(img);
-        mid_row = round(rowsImg/2);
-        r_start = max(1, mid_row - 30);
-        r_end   = min(rowsImg, mid_row + 30);
-        % cropped = double(img(r_start:r_end, :));
-
-        cropped = double(img);
-
+        img(img > pixel_intensity_limit) = 0;
         
+        % Crop a vertical region around the image center (±30 rows)
+        [rows, ~] = size(img);
+        mid_row = round(rows/2);
+        r_start = max(1, mid_row - 100);
+        r_end   = min(rows, mid_row + 50);
+        cropped = double(img(r_start:r_end, :));
+
+        cropped_blurred = imgaussfilt(cropped, 2);
+
+
+        % filteredImage = medfilt2(cropped, [5 5]);
+        % maxIntensity = max(filteredImage(:));
+
+        % figure(56757);imagesc(cropped_blurred);title(num2str(j))
+        % cropped = double(img);
+
         % For each row in the cropped region, find its maximum pixel value.
-        rowMaxima = max(cropped, [], 2);
-        peak = max(rowMaxima);
+        rowMaxima = max(cropped_blurred, [], 2);
+        [peak, idx] = max(rowMaxima);
         
         % Apply the QE correction.
-        peak_corrected = peak / QE(i);
+        peak_corrected = peak;
         
         focal_vals(j) = focal_length_mm;
         peak_vals(j) = peak_corrected;
@@ -1097,8 +1121,8 @@ end
 
 %
 % Force the leftmost and rightmost 5% of x to black.
-edge_fraction_left  = 0.47;
-edge_fraction_right = 0.32;
+edge_fraction_left  = 0.25;
+edge_fraction_right = 0.25;
 
 nEdge_left = round(nPoints * edge_fraction_left);
 nEdge_right = round(nPoints * edge_fraction_right);
@@ -1134,16 +1158,16 @@ ylabel('Intensity', 'FontSize', 24);
 % title('Composite Envelope with Horizontal Color Gradient Fill', 'FontSize', 28);
 
 % Add tags under the x-axis.
-text(0, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'left', 'FontSize', 24, 'Color', 'k');
-text(1, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'right', 'FontSize', 24, 'Color', 'k');
+text(0, -0.15, '(Far from ball lens)', 'Units', 'normalized', ...
+    'HorizontalAlignment', 'left', 'FontSize', 24, 'Color', 'r');
+text(1, -0.15, '(Close to ball lens)', 'Units', 'normalized', ...
+    'HorizontalAlignment', 'right', 'FontSize', 24, 'Color', 'r');
 
 % grid on;
 hold off;
-xlim([1.8 3.3]);
-ylim([550 1150]);
-
+xlim([2.25 2.7]);
+% ylim([550 1150]);
+set(gca, 'XDir', 'reverse');
 
 %% ----------------------- 3D and 2D Intensity Map -----------------------
 % Raw feedback range and conversion to focal length in cm
@@ -1763,235 +1787,9 @@ hold off;
 % ylim([100 950]);
 
 
-%% More precise VIS-IR characterisation
-feedback_range_array = 2800:1:3250;
-pixel_intensity_limit = 65535;
-parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\';
-folders = {
-    '400',...
-    % '450',...
-    % '500', ...
-    % '550',...
-    '600',...
-    % '650',...
-    % '700',...
-    % '750',...
-    '800',...
-    % '850',...
-    % '900',...
-    % '950',...
-    '1000'
-    };
-
-colors   = {
-            '#610061', ... %400nm
-            % 'b',...       % 450nm
-            % '#00ff92',... %500nm
-            % 'g',...       %550nm
-            '#ffbe00', ... %600nm
-            % 'r',...       % 650nm
-            % '#e90000', ... %700nm
-            % '#a10000',...%750nm
-            '#6d0000',...%800nm
-            % '#3b0f0f',...%850nm
-            % '#210808',...%900nm
-            % '#1c0404',...%950nm
-            '#030000',%1000nm
-            };             
-
-% Quantum efficiency factors for each folder:
-% For folder "450": use blue QE, "550": green QE, "650": red QE.
-quantum_efficiency_cam = [ 
-                            1, ... %400nm
-                            1, ... %450nm
-                            1, ... %500nm
-                            1, ... %550nm
-                            1, ... %600nm
-                            1, ... %650nm
-                            1, ... %700nm
-                            1,...%750nm
-                            1,...%800nm
-                            1,...%850nm
-                            1,...%900nm
-                            1,...%950nm
-                            1,...%1000nm
-                            ];
-
-QE = quantum_efficiency_cam;
-
-% Feedback conversion parameters
-feedback_min = 284;       % At this raw feedback, camera is farthest away.
-feedback_max = 3965;      % At this raw feedback, camera is closest.
-distance_at_min_mm = 92;  % When feedback is at minimum, camera is 920 mm away.
-feedback_range = feedback_max - feedback_min;
-
-% Preallocate cell arrays for storing data from each folder.
-focal_mm_all = cell(1, numel(folders));
-peak_all     = cell(1, numel(folders));
-
-% Loop Over Each Folder
-for i = 1:numel(folders)
-    currFolder = folders{i};
-    fileList = dir(fullfile(parent_path, currFolder, '*.tiff'));
-    nFiles = numel(fileList);
-    
-    % Preallocate arrays for the current folder.
-    focal_vals = zeros(nFiles,1);  % focal lengths (in mm)
-    peak_vals  = zeros(nFiles,1);  % corrected peak intensities
-    
-    % -- 1) Sort the fileList by the numeric part of the filename --
-    % Extract the numeric portion from each file name using a regexp and convert to double
-    numbers = cellfun(@(nm) str2double(regexp(nm, '\d+', 'match', 'once')), {fileList.name});
-    
-    % Sort and reorder the struct array
-    [~, sortIdx] = sort(numbers);
-    fileList = fileList(sortIdx);
-    
-    % -- 2) Now, process each file in sorted order --
-    for j = 1:nFiles
-        fileName = fileList(j).name;
-        [~, name] = fileparts(fileName);
-    
-
-        % feedback_value = str2double(name);
-        feedback_value = feedback_range_array(j);
-
-        % Convert raw feedback to focal length (mm) using the dynamic formula:
-        %   focal_length_mm = (feedback_max - feedback_value) / (feedback_max - feedback_min) * distance_at_min_mm
-        focal_length_mm = feedback_value; % (feedback_max - feedback_value) / feedback_range * distance_at_min_mm;
-        
-        % Read the image.
-        img = imread(fullfile(parent_path, currFolder, fileName));
-        if size(img,3) == 3
-            img = rgb2gray(img);
-        end
-
-        img(img > pixel_intensity_limit) = 0;
-        
-        % Crop a vertical region around the image center (±30 rows)
-        [rows, ~] = size(img);
-        mid_row = round(rows/2);
-        r_start = max(1, mid_row - 100);
-        r_end   = min(rows, mid_row + 50);
-        cropped = double(img(r_start:r_end, :));
-
-        cropped_blurred = imgaussfilt(cropped, 2);
-
-
-        % filteredImage = medfilt2(cropped, [5 5]);
-        % maxIntensity = max(filteredImage(:));
-
-        % figure(56757);imagesc(cropped_blurred);title(num2str(j))
-        % cropped = double(img);
-
-        % For each row in the cropped region, find its maximum pixel value.
-        rowMaxima = max(cropped_blurred, [], 2);
-        [peak, idx] = max(rowMaxima);
-
-
-        % figure(45654);imagesc(cropped);colorbar;title(fileName)
-
-        peak_corrected = peak;
-        
-        % Store the focal length and corrected peak value.
-        focal_vals(j) = focal_length_mm;
-        peak_vals(j)  = peak_corrected;
-    end
-    
-    % Sort the data by focal length (x-axis)
-    [focal_sorted, sortIdx] = sort(focal_vals);
-    peak_sorted = peak_vals(sortIdx);
-    
-    focal_mm_all{i} = focal_sorted;
-    peak_all{i}     = peak_sorted;
-end
-
-% Plotting: Combine All Datasets in a Visually Appealing Figure
-figure(456457); clf; hold on;
-set(gca, 'LineWidth', 2, 'FontSize', 16);  % Thicker axes and larger tick labels
-
-% Preallocate handles for the legend (one per dataset)
-h = gobjects(numel(folders),1);
-
-for i = 1:numel(folders)
-    % Convert focal lengths from mm to cm.
-    x = focal_mm_all{i} / 1;  % x-axis: focal length in cm
-    y = peak_all{i};           % y-axis: corrected peak intensity
-    col = colors{i};
-    
-    % Plot a low-opacity shaded area under the curve.
-    area(x, y, 'FaceColor', col, 'FaceAlpha', 0.2, 'EdgeAlpha', 0, 'HandleVisibility','off');
-    
-    % Overlay the line with markers.
-    h(i) = plot(x, y,'Color', col, 'LineWidth', 2.5, 'MarkerSize', 8);
-end
-
-% Reverse the x-axis so that higher focal lengths (cm) appear on the left.
-% set(gca, 'XDir', 'reverse');
-
-xlabel('Focal Length (cm)', 'FontSize', 24);
-ylabel('Intensity', 'FontSize', 24);
-grid on;
-
-% Rotate the x-axis tick labels by 45°.
-xtickangle(45);
-
-% Create a legend with only three entries (one per dataset).
-legend(h, folders, 'Location', 'east', 'FontSize', 24);
-
-% Add tags under the x-axis.
-text(0, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'left', 'FontSize', 24, 'Color', 'k');
-text(1, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'right', 'FontSize', 24, 'Color', 'k');
-
-
-hold off;
-% ylim([7 35]);
-% xlim([feedback_range_array(1) 3250]);
-% xlim([2.3 3.3]);
-% ylim([0 80]);
-
-%% test script for hyres hyperspectral
-parent_path = 'D:\Optical_characterisation\hyperspectral_high_resolution\1000';
-
-fileList = dir(fullfile(parent_path, '*.tiff'));
-nFiles = numel(fileList);
-
-for j = 1:nFiles
-    fileName = fileList(j).name;
-    [~, name] = fileparts(fileName);
-
-    img = imread(fullfile(parent_path, fileName));
-    if size(img,3) == 3
-        img = rgb2gray(img);
-    end
-
-    img(img > 500000) = 0;
-        
-    % Crop a vertical region around the image center (±30 rows)
-    [rows, ~] = size(img);
-    mid_row = round(rows/2);
-    r_start = max(1, mid_row - 100);
-    r_end   = min(rows, mid_row + 50);
-    cropped = double(img(r_start:r_end, :));
-
-    cropped = imgaussfilt(cropped, 2);
-
-    % cropped = double(img);
-
-    figure(5678);
-
-    imagesc(cropped);
-    title(num2str(j));colorbar;
-    % pause(1)
-    
-end
-
-
 %% Event based hyperspectral peaks and rainbow plot
 data = load('D:\gen4-windows\recordings\event_based_hyperspectral_results.mat');
-
+addpath("hex2rgb.m")
 range_plot = [2, 5];
 
 wavelength = data.wavelength;
@@ -2171,19 +1969,100 @@ grid on;
 hold off;
 xlim([3.163 3.4]);
 
-function rgb = hex2rgb(hexStr)
-    if hexStr(1) == '#'
-        hexStr = hexStr(2:end);
-    end
-    r = double(hex2dec(hexStr(1:2)))/255;
-    g = double(hex2dec(hexStr(3:4)))/255;
-    b = double(hex2dec(hexStr(5:6)))/255;
-    rgb = [r, g, b];
-end
+% function rgb = hex2rgb(hexStr)
+%     if hexStr(1) == '#'
+%         hexStr = hexStr(2:end);
+%     end
+%     r = double(hex2dec(hexStr(1:2)))/255;
+%     g = double(hex2dec(hexStr(3:4)))/255;
+%     b = double(hex2dec(hexStr(5:6)))/255;
+%     rgb = [r, g, b];
+% end
 
 
 %% 13x13 hyperspectral image grid
+parent_path = 'D:\Optical_characterisation\event_based_hyperspectral\';
 
+folders = { '400', '450', '500', '550', '600', '650', '700', '750', '800', '850', '900', '950', '1000' };
+colors = { '#610061', 'b', '#00ff92', 'g', '#ffbe00', 'r', '#e90000', '#a10000', '#6d0000', '#3b0f0f', '#210808', '#1c0404', '#030000' };
 
+% Define custom file order (0-based indices) for each folder.
+file_sequence = {
+    [12 21 65 31 41 51 71 81 91 101 111 121], ...   % 400 nm
+    [7 6 27 22 33 57 60 66 72 87 90 106], ...         % 450 nm
+    [4 20 6 7 33 40 46 54 66 71 81 84], ...            % 500 nm
+    [10 11 12 13 22 25 29 32 34 46 47 52], ...         % 550 nm
+    [72 73 75 77 79 36 40 37 42 45 49 55], ...         % 600 nm
+    [33 34 35 36 37 9 39 40 41 44 48 52], ...          % 650 nm
+    [107 108 140 135 136 112 20 21 24 25 39 40], ...    % 700 nm
+    [225 226 227 233 234 217 214 153 154 157 159 160], ... % 750 nm
+    [195 192 191 183 184 185 160 112 37 38 70 71], ...  % 800 nm
+    [85 78 77 72 70 69 68 66 7 6 12 16], ...           % 850 nm
+    [66 58 56 55 42 41 40 39 37 22 21 25], ...         % 900 nm
+    [79 72 58 57 55 42 41 40 38 9 8 7 1], ...          % 950 nm
+    [82 76 75 67 60 59 58 19 14 13 12 10 9]            % 1000 nm
+};
 
+nFolders = numel(folders);
+nFilesExpected = 13;  % Each folder is expected to have 13 images (indexed 0 to 12).
 
+% Pre-read file lists for each folder.
+fileListAll = cell(1, nFolders);
+for col = 1:nFolders
+    currFolder = folders{col};
+    fileList = dir(fullfile(parent_path, currFolder, '*.png'));
+    numbers = cellfun(@(nm) str2double(regexp(nm, '\d+', 'match', 'once')), {fileList.name});
+    [~, sortIdx] = sort(numbers);
+    fileList = fileList(sortIdx);
+    fileListAll{col} = fileList;
+end
+
+% Define subplot spacing parameters for subtightplot.
+gap    = [0.005 0.005];  % [vertical_gap, horizontal_gap]
+marg_h = [0.02 0.02];    % [bottom_margin, top_margin]
+marg_w = [0.02 0.02];    % [left_margin, right_margin]
+
+% Create a 13x13 grid using subtightplot.
+figure(1002); clf;
+set(gcf, 'Color', 'w');
+
+for row = 1:nFilesExpected   % row corresponds to focal index (0-based)
+    for col = 1:nFolders    % col corresponds to wavelength folder
+        % For folder 'col', get its file order vector.
+        seq = file_sequence{col} + 1;  % convert from 0-based to MATLAB 1-based indexing
+        fileList = fileListAll{col};
+        nFiles = numel(fileList);
+        if row > numel(seq)
+            fileIdx = nFiles;
+        else
+            fileIdx = seq(row);
+            if fileIdx > nFiles
+                fileIdx = nFiles;
+            end
+        end
+        
+        % Load the image.
+        fileName = fileList(fileIdx).name;
+        img = imread(fullfile(parent_path, folders{col}, fileName));
+        if size(img, 3) == 3
+            img = rgb2gray(img);
+        end
+        
+        % Compute the subplot index.
+        % Now, rows represent focal indices (from 0 to 12) and columns represent wavelengths (400 to 1000).
+        subplot_index = (row - 1) * nFolders + col;
+        subtightplot(nFilesExpected, nFolders, subplot_index, gap, marg_h, marg_w);
+        imshow(img, []);
+        axis image off;
+        
+        % Draw a colored boundary on the diagonal.
+        % Here, the diagonal means: for each folder, if focal index equals the same number as the folder index.
+        % (This is just an example; adjust the condition if desired.)
+        if row == col
+            hold on;
+            rectangle('Position', [0.5, 0.5, size(img,2), size(img,1)], ...
+                      'EdgeColor', colors{col}, 'LineWidth', 4);
+            hold off;
+        end
+    end
+end

@@ -105,7 +105,7 @@ void loop() {
 
 def main():
     # Ensure the frames folder exists.
-    wavelength = "800"
+    wavelength = "950"
     main_path = "D:/Optical_characterisation/hyperspectral_high_resolution"
     if not os.path.exists(f"{main_path}/{wavelength}"):
         os.makedirs(f"{main_path}/{wavelength}")
