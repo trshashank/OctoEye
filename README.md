@@ -7,7 +7,7 @@ Code and analysis for Seeing like a Cephalopod: Colour Vision with a Monochrome 
 <table align="center">
   <tr>
     <td align="center" style="border:none;">
-      <a href="https://samiarja.github.io/earthobservation/" target="_blank">
+      <a href="https://samiarja.github.io/neuromorphic_octopus_eye/" target="_blank">
         <img src="./figures/octopus_7591652.ico" alt="Project Page" width="50" style="padding:10px; background-color: #f5f5f5; border-radius: 10px; box-shadow: 2px 2px 12px #aaa;">
       </a>
     </td>
