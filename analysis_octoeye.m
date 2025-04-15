@@ -698,6 +698,9 @@ set(gca, 'LineWidth', 2, 'FontSize', 16);  % Thicker axes and larger tick labels
 % Preallocate handles for the legend (one per dataset)
 h = gobjects(numel(folders),1);
 
+
+peak_all_group = zeros(451,13);
+focal_all_group = zeros(451,1);
 for i = 1:numel(folders)
     % Convert focal lengths from mm to cm.
     x = focal_mm_all{i} / 10;  % x-axis: focal length in cm
@@ -712,7 +715,12 @@ for i = 1:numel(folders)
     
     % Overlay the line with markers.
     h(i) = plot(x, y,'Color', col, 'LineWidth', 2.5, 'MarkerSize', 8);
+
+    peak_all_group(:,i) = y;
+    focal_all_group(:,1) = x;
 end
+
+
 
 % Reverse the x-axis so that higher focal lengths (cm) appear on the left.
 % set(gca, 'XDir', 'reverse');
@@ -742,62 +750,62 @@ ylim([2 22]);
 figure(4564545);
 clf;
 
+% % Add an overall title for context.
+% suptitle('Frame Camera Hyperspectral Response');
+
 % Loop over each dataset.
 for i = 1:numel(folders)
-    % if i == 1
-    %     title("Frame Camera Hyperspectral Response", 'FontSize', 24);
-    % end
-    % Create a subplot (using subtightplot or subplot as available).
+    % Create a tight subplot for better spacing.
     subtightplot(numel(folders), 1, i);
     hold on;
-    set(gca, 'LineWidth', 2, 'FontSize', 16);  % Thicker axes and larger tick labels
+    
+    % Enhance axes aesthetics.
+    set(gca, 'LineWidth', 2, 'FontSize', 16, 'TickDir', 'out');
     
     % Convert focal lengths from mm to cm.
-    x = focal_mm_all{i} / 10;  % x-axis: focal length in cm
-    y = peak_all{i};           % y-axis: corrected peak intensity
+    x = focal_mm_all{i} / 10;  % Focal length in cm
+    y = peak_all{i};           % Corrected peak intensity
     col = colors{i};
 
+    % Smooth the data with a moving average.
     windowSize = max(3, round(0.1 * numel(y)));
     y = smoothdata(y, 'movmean', windowSize);
     
     % Plot a low-opacity shaded area under the curve.
-    area(x, y, 'FaceColor', col, 'FaceAlpha', 0.2, 'EdgeAlpha', 0, ...
-         'HandleVisibility', 'off');
+    area(x, y, 'FaceColor', col, 'FaceAlpha', 0.2, 'EdgeAlpha', 0, 'HandleVisibility', 'off');
     
     % Overlay the line with markers.
     h = plot(x, y, 'Color', col, 'LineWidth', 2.5, 'MarkerSize', 8);
     
-    % Add a legend for this subplot (using the current dataset's label).
-    legend(h, folders{i}, 'Location', 'west', 'FontSize', 24);
+    % Add a legend for this subplot (only for the curve handle).
+    legend(h, folders{i}, 'Location', 'west', 'FontSize', 14);
     
+    % Set consistent axis limits.
     xlim([2 2.8]);
-    % 
+    ylim([3 22]);
     
     % Only show x-axis tick labels on the last subplot.
     if i < numel(folders)
         set(gca, 'XTickLabel', []);
+    else
+        xlabel('Focal Length (cm)', 'FontSize', 24);
     end
-
-    % if i == 13
-    %     xtickangle(45);
-    %     xlabel('Focal Length (cm)', 'FontSize', 24);
-    % end
-    % if i == 7
-    %     ylabel('Intensity', 'FontSize', 30);
-    % end
+    
+    if i == 7
+        ylabel('Intensity', 'FontSize', 24);
+    end
+    
+    %--- Add Maximum Peak Marker (not included in legend) ---
+    % Find the maximum peak.
+    [max_val, idx_max] = max(y);
+    max_x = x(idx_max);
+    % Plot a black circle at the maximum, without adding it to the legend.
+    plot(max_x, max_val, 'ko', 'MarkerSize', 10, 'LineWidth', 2, 'HandleVisibility', 'off');
     
     grid on;
     hold off;
-    
-    
-    % if i == 13
-    %     text(0, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
-    %         'HorizontalAlignment', 'left', 'FontSize', 24, 'Color', 'r');
-    %     text(1, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
-    %         'HorizontalAlignment', 'right', 'FontSize', 24, 'Color', 'r');
-    % end
 end
-ylim([3 22]);
+
 
 % % Add tags under the x-axis in the last subplot.
 % subplot(numel(folders), 1, numel(folders));
@@ -881,9 +889,8 @@ yline(750, '--k', 'LineWidth', 2);
 
 set(gca, 'YDir', 'reverse');  % Lower wavelengths appear at the top
 set(gca, 'YTick', 400:50:1000, 'FontSize', 16, 'LineWidth', 3);
-xlabel('Focal Length (cm)', 'FontSize', 18, 'FontWeight', 'bold');
-ylabel('Wavelength (nm)', 'FontSize', 18, 'FontWeight', 'bold');
-title("Frame Camera Hyperspectral Response");
+xlabel({'Distance from sensor to ball lens surface (cm)', '(Focal distance)'}, 'FontSize', 18, 'FontWeight', 'bold');ylabel('Wavelength (nm)', 'FontSize', 18, 'FontWeight', 'bold');
+title("The change in focal distance with wavelength");
 
 % --- Add rotated text annotations for spectral regions ---
 text(2.28, 700, 'Visible light', 'FontSize', 24, 'FontWeight', 'bold', ...
@@ -891,10 +898,10 @@ text(2.28, 700, 'Visible light', 'FontSize', 24, 'FontWeight', 'bold', ...
 text(2.28, 950, 'Infrared', 'FontSize', 24, 'FontWeight', 'bold', ...
     'HorizontalAlignment', 'left', 'Color', 'k', 'Rotation', 90);
 
-text(0, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'left', 'FontSize', 16, 'Color', 'r');
-text(1, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'right', 'FontSize', 16, 'Color', 'r');
+% text(0, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
+%     'HorizontalAlignment', 'left', 'FontSize', 16, 'Color', 'r');
+% text(1, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
+%     'HorizontalAlignment', 'right', 'FontSize', 16, 'Color', 'r');
 
 grid on;
 hold off;
@@ -1074,7 +1081,7 @@ for row = 1:nFolders
         roi_y_max = center_y + ROI_half;
         roi_x_min = center_x - ROI_half + 1;
         roi_x_max = center_x + ROI_half;
-        roi_y_min = max(1, roi_y_min); 
+        roi_y_min = max(1, roi_y_min);
         roi_y_max = min(r, roi_y_max);
         roi_x_min = max(1, roi_x_min); 
         roi_x_max = min(c, roi_x_max);
@@ -1117,7 +1124,6 @@ end
 
 
 %% ----------------------- Hyperspectral Rainbow Composite -----------------------
-
 % SETTINGS & DEFINITIONS
 feedback_range_array = 2800:1:3250;
 parent_path = '/media/samiarja/USB/Optical_characterisation/hyperspectral_high_resolution/';
@@ -2155,8 +2161,17 @@ colors = { '#610061', ... % 400nm
            '#030000'       % 1000nm
          };
 
-figure(34356);
+
+range_plot = [3, 3.6];
+final_focal = linspace(range_plot(1), range_plot(2), 50);  % 1D array of 50 points
+
+% Preallocate the matrix for event rate curves (nRecords x 50)
+peak_all_group = nan(nRecords, 50);
+
+figure(34356);clf();
 hold on;
+legendLabels = {};
+
 for i = 1:nRecords
     % For record i, extract the segment range.
     segStart = squeeze(sortedSegmentRange(i,:,1)); % [start_focal, start_time]
@@ -2167,7 +2182,7 @@ for i = 1:nRecords
     end_time    = segEnd(2);
     
     % Get the event rate data for this record.
-    er = sortedERArray{i};  % now using cell-array indexing (er.timestamps and er.values are numeric vectors)
+    er = sortedERArray{i};  % (er.timestamps and er.values are numeric vectors)
     
     % Map event rate timestamps to focal length via linear interpolation.
     focal_vals = interp1([start_time, end_time], [start_focal, end_focal], er.timestamps);
@@ -2182,17 +2197,27 @@ for i = 1:nRecords
     focal_subset = focal_vals(mask);
     evrate_subset = norm_evrate_values(mask);
     
-    % Store this subset into cell arrays.
-    focal_cell{i} = focal_subset;
-    evrate_cell{i} = evrate_subset;
-    
-    % Also, plot the normalized curve for visual reference.
-    if i <= numel(colors)
-        plot(focal_subset, evrate_subset, 'Color', colors{i}, 'LineWidth', 2);
+    % Interpolate the event rate values to 50 points on the common grid.
+    if numel(focal_subset) >= 2
+        new_evrate = interp1(focal_subset, evrate_subset, final_focal, 'linear', 'extrap');
     else
-        plot(focal_subset, evrate_subset, 'LineWidth', 2);
+        new_evrate = nan(1,50);
     end
+    
+    % Save the interpolated event rate data as a row.
+    peak_all_group(i, :) = new_evrate;
+    
+    % Plot the interpolated curve for visual reference.
+    if i <= numel(colors)
+        plot(final_focal, new_evrate, 'Color', colors{i}, 'LineWidth', 2);
+    else
+        plot(final_focal, new_evrate, 'LineWidth', 2);
+    end
+    legendLabels{end+1} = sprintf('Record %d', i);
 end
+
+% Save the common focal grid as a 1D array.
+focal_all_group = final_focal;
 
 xlabel('Focal Length (cm)');
 ylabel('Normalized Event Rate (events/s)');
@@ -2300,9 +2325,9 @@ yline(750, '--k', 'LineWidth', 2);
 
 set(gca, 'YDir', 'reverse');  % Lower wavelengths appear at the top
 set(gca, 'YTick', 400:50:1000, 'FontSize', 16, 'LineWidth', 3);
-xlabel('Focal Length (cm)', 'FontSize', 18, 'FontWeight', 'bold');
+xlabel({'Distance from sensor to ball lens surface (cm)', '(Focal distance)'}, 'FontSize', 18, 'FontWeight', 'bold');ylabel('Wavelength (nm)', 'FontSize', 18, 'FontWeight', 'bold');
 ylabel('Wavelength (nm)', 'FontSize', 18, 'FontWeight', 'bold');
-title("Event Camera Hyperspectral Response");
+title("The change in focal distance with wavelength");
 
 % --- Add rotated text annotations for spectral regions ---
 text(3.175, 700, 'Visible light', 'FontSize', 24, 'FontWeight', 'bold', ...
@@ -2310,10 +2335,10 @@ text(3.175, 700, 'Visible light', 'FontSize', 24, 'FontWeight', 'bold', ...
 text(3.175, 950, 'Infrared', 'FontSize', 24, 'FontWeight', 'bold', ...
     'HorizontalAlignment', 'left', 'Color', 'k', 'Rotation', 90);
 
-text(0, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'left', 'FontSize', 16, 'Color', 'r');
-text(1, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
-    'HorizontalAlignment', 'right', 'FontSize', 16, 'Color', 'r');
+% text(0, -0.1, '(Close to ball lens)', 'Units', 'normalized', ...
+%     'HorizontalAlignment', 'left', 'FontSize', 16, 'Color', 'r');
+% text(1, -0.1, '(Far from ball lens)', 'Units', 'normalized', ...
+%     'HorizontalAlignment', 'right', 'FontSize', 16, 'Color', 'r');
 
 grid on;
 hold off;
@@ -2321,95 +2346,8 @@ xlim([3.163 3.4]);ylim([400 1000])
 
 
 
-%% 13x13 hyperspectral image grid
-parent_path = '/media/samiarja/USB/Optical_characterisation/event_based_hyperspectral/';
-
-folders = { '400', '450', '500', '550', '600', '650', '700', '750', '800', '850', '900', '950', '1000' };
-colors = { '#610061', 'b', '#00ff92', 'g', '#ffbe00', 'r', '#e90000', '#a10000', '#6d0000', '#3b0f0f', '#210808', '#1c0404', '#030000' };
-
-% Define custom file order (0-based indices) for each folder.
-file_sequence = {
-    [12 21 65 31 41 51 71 81 91 101 111 121], ...   % 400 nm
-    [7 6 27 22 33 57 60 66 72 87 90 106], ...         % 450 nm
-    [4 20 6 7 33 40 46 54 66 71 81 84], ...            % 500 nm
-    [10 11 12 13 22 25 29 32 34 46 47 52], ...         % 550 nm
-    [72 73 75 77 79 36 40 37 42 45 49 55], ...         % 600 nm
-    [33 34 35 36 37 9 39 40 41 44 48 52], ...          % 650 nm
-    [107 108 140 135 136 112 20 21 24 25 39 40], ...    % 700 nm
-    [225 226 227 233 234 217 214 153 154 157 159 160], ... % 750 nm
-    [195 192 191 183 184 185 160 112 37 38 70 71], ...  % 800 nm
-    [85 78 77 72 70 69 68 66 7 6 12 16], ...           % 850 nm
-    [66 58 56 55 42 41 40 39 37 22 21 25], ...         % 900 nm
-    [79 72 58 57 55 42 41 40 38 9 8 7 1], ...          % 950 nm
-    [82 76 75 67 60 59 58 19 14 13 12 10 9]            % 1000 nm
-};
-
-nFolders = numel(folders);
-nFilesExpected = 13;  % Each folder is expected to have 13 images (indexed 0 to 12).
-
-% Pre-read file lists for each folder.
-fileListAll = cell(1, nFolders);
-for col = 1:nFolders
-    currFolder = folders{col};
-    fileList = dir(fullfile(parent_path, currFolder, '*.png'));
-    numbers = cellfun(@(nm) str2double(regexp(nm, '\d+', 'match', 'once')), {fileList.name});
-    [~, sortIdx] = sort(numbers);
-    fileList = fileList(sortIdx);
-    fileListAll{col} = fileList;
-end
-
-% Define subplot spacing parameters for subtightplot.
-gap    = [0.005 0.005];  % [vertical_gap, horizontal_gap]
-marg_h = [0.02 0.02];    % [bottom_margin, top_margin]
-marg_w = [0.02 0.02];    % [left_margin, right_margin]
-
-% Create a 13x13 grid using subtightplot.
-figure(1002); clf;
-set(gcf, 'Color', 'w');
-
-for row = 1:nFilesExpected   % row corresponds to focal index (0-based)
-    for col = 1:nFolders    % col corresponds to wavelength folder
-        % For folder 'col', get its file order vector.
-        seq = file_sequence{col} + 1;  % convert from 0-based to MATLAB 1-based indexing
-        fileList = fileListAll{col};
-        nFiles = numel(fileList);
-        if row > numel(seq)
-            fileIdx = nFiles;
-        else
-            fileIdx = seq(row);
-            if fileIdx > nFiles
-                fileIdx = nFiles;
-            end
-        end
-        
-        % Load the image.
-        fileName = fileList(fileIdx).name;
-        img = imread(fullfile(parent_path, folders{col}, fileName));
-        if size(img, 3) == 3
-            img = rgb2gray(img);
-        end
-        
-        % Compute the subplot index.
-        % Now, rows represent focal indices (from 0 to 12) and columns represent wavelengths (400 to 1000).
-        subplot_index = (row - 1) * nFolders + col;
-        subtightplot(nFilesExpected, nFolders, subplot_index, gap, marg_h, marg_w);
-        imshow(img, []);
-        axis image off;
-        
-        % Draw a colored boundary on the diagonal.
-        % Here, the diagonal means: for each folder, if focal index equals the same number as the folder index.
-        % (This is just an example; adjust the condition if desired.)
-        if row == col
-            hold on;
-            rectangle('Position', [0.5, 0.5, size(img,2), size(img,1)], ...
-                      'EdgeColor', colors{col}, 'LineWidth', 4);
-            hold off;
-        end
-    end
-end
-
 %% Hyperspectral simulation - 3DOptiX
-baseFolder = '/home/samiarja/Desktop/PhD/Code/OctoEye/simulation/';
+baseFolder = '/media/samiarja/USB/Optical_characterisation/simulation/';
 folderInfo = dir(baseFolder);
 isSubFolder = [folderInfo.isdir] & ~ismember({folderInfo.name}, {'.', '..'});
 focalFolders = folderInfo(isSubFolder);
@@ -2461,7 +2399,7 @@ end
 
 %% Prepare and plot the data
 % Define the base folder containing all focal-length folders
-baseFolder = '/home/samiarja/Desktop/PhD/Code/OctoEye/simulation/';
+baseFolder = '/media/samiarja/USB/Optical_characterisation/simulation/';
 
 % Define the wavelength files and corresponding colors (color palette)
 files = { '400', '450', '500', '550', '600', '650', '700', '750', '800', '850', '900', '950', '1000' };
@@ -2723,8 +2661,6 @@ xlim([60.72 61.815]);
 ylim([400 1000])
 
 %% 13x13 grid simulation data
-
-% Intensity and ROI parameters
 pixel_intensity_limit = 1300;
 ROI_size = 10;         % Size of the region used for the initial ROI (square)
 ROI_half = ROI_size / 2;
@@ -2735,7 +2671,7 @@ marg_h = [0.02 0.02];    % [bottom_margin, top_margin]
 marg_w = [0.02 0.02];    % [left_margin, right_margin]
 
 % Base folder with simulation CSV files (each subfolder is a focal-length value)
-baseFolder = '/home/samiarja/Desktop/PhD/Code/OctoEye/simulation/';
+baseFolder = '/media/samiarja/USB/Optical_characterisation/simulation/';
 load(baseFolder+"focal_peak_all.mat");
 
 % Define the wavelength filenames and corresponding colors
@@ -2840,38 +2776,8 @@ for row = 1:nWavelengths
 end
 
 
-%% Temporal derivative
-wavelengths = 600:50:1000;
-colors   = {
-            '#610061', ... %400nm
-            'b',...       % 450nm
-            '#00ff92',... %500nm
-            'g',...       %550nm
-            '#ffbe00', ... %600nm
-            'r',...       % 650nm
-            '#e90000', ... %700nm
-            '#a10000',...%750nm
-            '#6d0000',...%800nm
-            '#3b0f0f',...%850nm
-            '#210808',...%900nm
-            '#1c0404',...%950nm
-            '#030000',%1000nm
-            };   
-figure(45456);clf();
-for i = 1:numel(wavelengths)
-    fullfilname = "/media/samiarja/USB/Optical_characterisation/frame_to_events_simulation/"+num2str(wavelengths(i))+"/"+num2str(wavelengths(i))+"_event_rate_data.mat";
-    if exist(fullfilname, 'file')
-        load(fullfilname)
-        windowSize = max(3, round(0.1 * numel(samples)));
-        samples = smoothdata(samples, 'movmean', windowSize);
-
-        plot(timestamps,samples,'Color',colors{i},"LineWidth",2);hold on;grid on
-    end
-
-end
-
 %% Convert 3DOptiX .csv to .png frames (NO NEED TO RUN AGAIN)
-baseFolder = '/home/samiarja/Desktop/PhD/Code/OctoEye/simulation/';
+baseFolder = '/media/samiarja/USB/Optical_characterisation/simulation/';
 folderInfo = dir(baseFolder);
 isSubFolder = [folderInfo.isdir] & ~ismember({folderInfo.name}, {'.', '..'});
 focalFolders = folderInfo(isSubFolder);
@@ -3025,9 +2931,11 @@ box on;
 xlabel('Time (\mus)', 'FontSize', 16, 'FontWeight', 'bold');
 ylabel('Event Rate (Log scale)', 'FontSize', 16, 'FontWeight', 'bold');
 % title('Event Rate vs. Time for Various Wavelengths', 'FontSize', 18, 'FontWeight', 'bold');
+title("Per wavelength event rate - Visible light and Infrared")
 
 % Add a legend in the best location
-legend(legendLabels, 'Location', 'best');
+h_leg = legend(legendLabels, 'Location', 'best');
+h_leg.Title.String = 'Wavelengths';
 
 %% Simulation 3D plot vs WAVELENGTHS (Hourglass shape)
 addpath("myColorToRGB")
@@ -3054,60 +2962,545 @@ set(gcf, 'Color', 'w');  % White figure background
 
 % Configure axes for a white theme with black labels
 ax = gca;
-set(ax, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'ZColor', 'k', ...
-    'FontSize', 14, 'LineWidth', 1.5);
+set(ax, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'FontSize', 14, 'LineWidth', 1.5);
 grid on;
 hold on;
 
-% Loop over each wavelength and load the corresponding events data
-c = 1;
 wavelengths = 400:50:1000;
-for wavelength = wavelengths
-    % Construct file path and load events data (assumes variable "events" exists)
+
+% % Loop over each wavelength and plot all events
+% for idx = 1:length(wavelengths)
+%     wavelength = wavelengths(idx);
+%     % Construct file path and load events data (assumes variable "events" exists)
+%     dataPath = fullfile("/media/samiarja/USB/Optical_characterisation/3DOptiX_simulation_events/", ...
+%         num2str(wavelength), [num2str(wavelength) '_ev_100_10_100_40_0.1_0.01_tiff_dvs_without_hot_pixels_crop.mat']);
+%     load(dataPath, 'events');
+% 
+%     % Convert the color string to an RGB triple
+%     colRGB = myColorToRGB(colors{idx});
+% 
+%     % Plot the events using scatter:
+%     % x coordinate: events(:,2)
+%     % y coordinate: events(:,3)
+%     h = scatter(events(:,2), events(:,3), 20, colRGB, 'filled');
+%     % Set marker transparency for an artistic look
+%     h.MarkerFaceAlpha = 0.7;
+% end
+
+% Loop over each wavelength to highlight events in the specific region:
+% x between 25 and 35, and y between 15 and 35.
+for idx = 1:length(wavelengths)
+    wavelength = wavelengths(idx);
     dataPath = fullfile("/media/samiarja/USB/Optical_characterisation/3DOptiX_simulation_events/", ...
         num2str(wavelength), [num2str(wavelength) '_ev_100_10_100_40_0.1_0.01_tiff_dvs_without_hot_pixels_crop.mat']);
     load(dataPath, 'events');
     
-    % Convert the color string to an RGB triple
-    colRGB = myColorToRGB(colors{c});
+    % Apply filtering: x (events(:,2)) between 25 and 35,
+    % and y (events(:,3)) between 15 and 35.
+    filter_idx = events(:,2) >= 25 & events(:,2) <= 35 & events(:,3) >= 15 & events(:,3) <= 35;
+    filtered_events = events(filter_idx, :);
     
-    % Plot the events using scatter3.
-    % x coordinate: events(:,2)
-    % time coordinate: events(:,1)
-    % y coordinate: events(:,3)
-    h = scatter3(events(:,2), events(:,1), events(:,3), 20, colRGB, 'filled');
-    
-    % Set marker transparency for an artistic look
-    h.MarkerFaceAlpha = 0.7;
-    
-    c = c + 1;
+    if ~isempty(filtered_events)
+        colRGB = myColorToRGB(colors{idx});
+        % Plot the filtered events with larger markers and a black edge
+        h_f = scatter3(filtered_events(:,2), filtered_events(:,3),filtered_events(:,1), 40, colRGB, 'filled');
+        h_f.MarkerEdgeColor = 'k';
+        h_f.MarkerFaceAlpha = 0.5;
+    end
 end
-xlim([10 25]);
+
+% Set axis limits to show the full data range from 0 to 50 on x and y axes
+xlim([20 40]);
+ylim([10 40]);
 
 % Label axes with black text
 xlabel("x [px]", 'FontSize', 16, 'FontWeight', 'bold', 'Color', 'k');
-ylabel("time [\mu s]", 'FontSize', 16, 'FontWeight', 'bold', 'Color', 'k');
-zlabel("y [px]", 'FontSize', 16, 'FontWeight', 'bold', 'Color', 'k');
-
-% Set the view and camera projection for a clear 3D perspective
-view([80 20]);
+ylabel("y [px]", 'FontSize', 16, 'FontWeight', 'bold', 'Color', 'k');
+zlabel("Time [\mu s]", 'FontSize', 16, 'FontWeight', 'bold', 'Color', 'k');
+title("Slice through the pinhole during focus/defocus")
+view([-120 20]);
 camproj perspective;
 camorbit(20, 10, 'data', [0 1 0]);
 
 % Add a legend mapping wavelengths to colors (labels in black)
 legendStrings = arrayfun(@(w) sprintf('%dnm', w), wavelengths, 'UniformOutput', false);
-legend(legendStrings, 'TextColor', 'k', 'Location', 'best');
+h_leg = legend(legendStrings, 'TextColor', 'k', 'Location', 'best');
+h_leg.Title.String = 'Wavelengths';
 
-%% Real event data 3D plot vs WAVELENGTHS (Hourglass shape)
-wavelength = 600;
+%% Real event data 3D plot vs WAVELENGTHS
+data = load('/media/samiarja/USB/gen4-windows/recordings/event_based_hyperspectral_results.mat');
 
-load("/media/samiarja/USB/gen4-windows/recordings/"+num2str(wavelength)+"/2025-02-21T10-49-52Z_dvs_without_hot_pixels_crop.mat")
+% Define the colors for each wavelength.
+colors = { ...
+    '#610061', ... % 400nm
+    'b',       ... % 450nm
+    '#00ff92', ... % 500nm
+    'g',       ... % 550nm
+    '#ffbe00', ... % 600nm
+    'r',       ... % 650nm
+    '#e90000', ... % 700nm
+    '#a10000', ... % 750nm
+    '#6d0000', ... % 800nm
+    '#3b0f0f', ... % 850nm
+    '#210808', ... % 900nm
+    '#1c0404', ... % 950nm
+    '#030000'      % 1000nm
+};
 
-figure(6565);
-plot3(events(:,2),events(:,3),events(:,1),".b","MarkerSize",5);
-xlabel("x");ylabel("y");zlabel("t");zlim([0 1e8]);grid on
-% xlim([200 400]);ylim([150 300]);
+optimal_focal = [3.1633, 3.1818, 3.2445, 3.2927, 3.2957, 3.3198, ...
+                 3.3350, 3.3380, 3.3395, 3.3688, 3.3718, 3.3824, 3.3865];
 
+% Choose a scaling factor for the time
+time_offset_scale = 1e5;
+min_focal = min(optimal_focal);
 
+% Wavelength array for legend labels.
+wavelengths = 400:50:1000;
+legend_labels = arrayfun(@(w) sprintf('%dnm', w), wavelengths, 'UniformOutput', false);
 
+figure(34545); clf; 
+set(gcf, 'Color', 'w');           % Set a white background for the figure.
+ax = gca;
+hold(ax, 'on');
+grid(ax, 'on');
+box(ax, 'on');
+set(ax, 'FontSize', 16, 'FontName', 'Helvetica', 'LineWidth', 1.5);
+view(ax, 3);
+
+% Loop through each event dataset.
+for i = 1:13
+    % Normalize time so that each event set starts at zero.
+    data.events{i}.t = data.events{i}.t - data.events{i}.t(1);
+    
+    % Compute the time offset based on the optimal focal value.
+    time_offset = (optimal_focal(i) - min_focal) * time_offset_scale;
+    
+    % Bump the time coordinate.
+    bumped_t = data.events{i}.t + time_offset;
+    
+    % Plot the 3D event data with a slightly larger marker for better visibility.
+    plot3(data.events{i}.x, data.events{i}.y, bumped_t, ".", ...
+          "Color", colors{i}, "MarkerSize", 8, "LineWidth", 1.5);
+end
+
+% Enhance the axes with clear labels and a title.
+xlabel('x [px]', 'FontSize', 18, 'FontWeight', 'bold', 'FontName', 'Helvetica');
+ylabel('y [px]', 'FontSize', 18, 'FontWeight', 'bold', 'FontName', 'Helvetica');
+zlabel('Time (\mu s)', 'FontSize', 18, 'FontWeight', 'bold', 'FontName', 'Helvetica');
+% title('3D Event Data for Hyperspectral Wavelengths', 'FontSize', 20, 'FontWeight', 'bold', 'FontName', 'Helvetica');
+
+% Add a legend with the wavelengths, placed outside the main plot.
+h_leg = legend(legend_labels, 'Location', 'northeastoutside', 'FontSize', 14);
+h_leg.Title.String = 'Wavelengths';
+% Adjust the axes to fit the data tightly.
+axis tight;
+
+% Optionally, adjust the view angle for a better perspective.
+camorbit(20, 10);
+
+hold off;
+
+%% event rate plot
+% Define Wavelengths, Time Shifts, and Colors
+wavelengths = [400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000];
+% wavelengths = [400,700, 900];
+
+% Define independent time shifts for the event rate curves:
+time_shifts_event = [3, 12, 11, 8.5, -10, 10, 7.8, 11, -7, -8.5, -10, -13.5, 11.5];
+% time_shifts_event = [0,0, 14];
+
+% Define independent time shifts for the focal length curves:
+time_shifts_focal = [7, 0, 0, 0, 0, 0];  % Adjust these values as needed
+
+colors = { '#610061', ... % 400nm
+    'b',       ... % 450nm
+    '#00ff92', ... % 500nm
+    'g',       ... % 550nm
+    '#ffbe00', ... % 600nm
+    'r',       ... % 650nm
+    '#e90000', ... % 700nm
+    '#a10000', ... % 750nm
+    '#6d0000', ... % 800nm
+    '#3b0f0f', ... % 850nm
+    '#210808', ... % 900nm
+    '#1c0404', ... % 950nm
+    '#030000'      % 1000nm
+};
+
+% Set Up Common Reference and Plot Range
+% Use the 400nm file as the main data to set the time reference.
+main_file = sprintf('figures/%d_wavelength_event_rate.mat', wavelengths(1));
+if ~exist(main_file, 'file')
+    error('Main data file does not exist: %s', main_file);
+end
+data_main = load(main_file);
+main_first = data_main.focal_length_time(1);
+
+% Define the plot range (using main_first as the reference).
+% For example, if the original time range is [460,550] seconds:
+plot_range_norm = [460 - main_first, 550 - main_first];
+t_lower = plot_range_norm(1);
+t_upper = plot_range_norm(2);
+
+% Loop Over Files: Process and Store Data
+nFiles = length(wavelengths);
+focal_x = cell(nFiles, 1);  % Processed time for focal length curves
+focal_y = cell(nFiles, 1);  % Focal length data
+event_x = cell(nFiles, 1);  % Processed time for event rate curves
+event_y = cell(nFiles, 1);  % Event rate data
+
+for i = 1:nFiles
+    filename = sprintf('figures/%d_wavelength_event_rate.mat', wavelengths(i));
+    if exist(filename, 'file')
+        data = load(filename);
+        
+        % --- Process Focal Length Data ---
+        focal_time = data.focal_length_time - main_first;
+        idx_focal = (focal_time >= t_lower) & (focal_time <= t_upper);
+        norm_focal_time = focal_time(idx_focal) - t_lower;
+        % Use the focal shift if provided; otherwise default to 0.
+        if i <= numel(time_shifts_focal)
+            current_focal_shift = time_shifts_focal(i);
+        else
+            current_focal_shift = 0;
+        end
+        focal_x{i} = norm_focal_time + current_focal_shift;
+        focal_y{i} = data.focal_length(idx_focal);
+        
+        % --- Process Event Rate Data ---
+        event_time = data.event_rate_time - main_first;
+        idx_event = (event_time >= t_lower) & (event_time <= t_upper);
+        norm_event_time = event_time(idx_event) - t_lower;
+        if i <= numel(time_shifts_event)
+            current_event_shift = time_shifts_event(i);
+        else
+            current_event_shift = 0;
+        end
+        event_x{i} = norm_event_time + current_event_shift;
+        event_y{i} = normalize(data.event_rate(idx_event), "range");
+    else
+        fprintf('File not found: %s\n', filename);
+    end
+end
+
+% Create Figure and Plot All Curves
+figure(1); clf;
+% set(gcf, 'Position', [100 100 800 400]);
+
+% --- Plot Focal Length Curve on the Left Y-Axis ---
+yyaxis left;
+hold on;
+% Plot only the focal length curve from the 400nm dataset in thick black.
+if ~isempty(focal_x{1})
+    plot(focal_x{1}, focal_y{1}, '-', 'Color', 'k', 'LineWidth', 4, 'HandleVisibility', 'off');
+end
+ylabel('Focal Length (cm)', 'FontSize', 14);
+set(gca, 'YColor', 'k');  % Left axis remains linear
+
+% --- Plot Event Rate Curves on the Right Y-Axis ---
+yyaxis right;
+% (If you want the right axis in log scale, you can set YScale here.)
+% set(gca, 'YScale', 'log');
+for i = 1:nFiles
+    if ~isempty(event_x{i})
+        plot(event_x{i}, event_y{i}, '-', 'Color', colors{i}, 'LineWidth', 2);
+    end
+end
+ylabel('Event Rate (events/s)', 'FontSize', 14);
+set(gca, 'YColor', 'k');  % Right axis tick color
+
+% Set x-axis limits so that time starts at 0
+xlim([0, t_upper - t_lower]);
+xlabel('Time (s)', 'FontSize', 14);
+grid on;
+
+legend_labels = arrayfun(@(w) sprintf('%dnm', w), wavelengths, 'UniformOutput', false);
+h_leg = legend(legend_labels, 'Location', 'east', 'FontSize', 14);
+h_leg.Title.String = 'Wavelengths';
+% xlim([37, 71])
+%
+
+%% --- Figure 2: Visually Impressive Display of Focal Points & Focal Distance ---
+colors = { '#610061', ... % 400nm
+    'b',       ... % 450nm
+    '#00ff92', ... % 500nm
+    'g',       ... % 550nm
+    '#ffbe00', ... % 600nm
+    'r',       ... % 650nm
+    '#e90000', ... % 700nm
+    '#a10000', ... % 750nm
+    '#6d0000', ... % 800nm
+    '#3b0f0f', ... % 850nm
+    '#210808', ... % 900nm
+    '#1c0404', ... % 950nm
+    '#36454F'      % 1000nm
+};
+
+figure(2); clf;
+% Set a dark (black) background and enlarge the figure.
+set(gcf, 'Color', 'k', 'Position', [100 100 1000 600]);
+set(gcf, 'InvertHardcopy', 'off');  % Ensure the black background is preserved when saving
+
+% Create axes with a black background, white labels, and a contrasting grid.
+ax2 = axes;
+set(ax2, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', [0.5 0.5 0.5], 'FontSize', 16);
+hold on;
+grid on;
+
+% Use the same x-axis range as before.
+xlim([37, 71]);
+ylim([0, 1]); % Assuming normalized event rate is in [0,1]
+xlabel('Time (s)', 'FontSize', 24, 'Color', 'w');
+ylabel('Event Rate (Events/s)', 'FontSize', 24, 'Color', 'w');
+title('Focal Points for Visible & Near-Infrared Wavelengths (EVK4)', 'FontSize', 24, 'Color', 'w');
+
+% Initialize arrays to store focal point coordinates (max event rate for each curve).
+focal_points_x = [];
+focal_points_y = [];
+
+% Preallocate an array for the main event curve handles.
+nWaves = length(wavelengths);
+h_event = gobjects(nWaves,1);
+
+% Loop over wavelengths to plot event rate curves.
+for i = 1:length(wavelengths)
+    if ~isempty(event_x{i})
+        col = colors{i};
+        % --- Plot the event rate curve with a simulated glow effect ---
+        % First, a thicker line for a glow effect (not added to legend).
+        plot(event_x{i}, event_y{i}, '-', 'Color', col, 'LineWidth', 4, 'HandleVisibility', 'off');
+        % Then, the main line over it (this one appears in the legend).
+        h_event(i) = plot(event_x{i}, event_y{i}, '-', 'Color', col, 'LineWidth', 2);
+        
+        % --- Determine and plot the focal point (maximum of the event rate) ---
+        [max_val, idx_max] = max(event_y{i});
+        max_time = event_x{i}(idx_max);
+        focal_points_x(end+1) = max_time;
+        focal_points_y(end+1) = max_val;
+        
+        % (Optional: If you want to mark the focal points, you can uncomment the following:)
+        % plot(max_time, max_val, 'o', 'MarkerEdgeColor', 'w', 'MarkerFaceColor', col, ...
+        %     'MarkerSize', 10, 'LineWidth', 2);
+    end
+end
+
+% --- Plot the focal distance curve from the 400nm dataset ---
+% For a cool effect, we normalize the focal length data to [0,1] for display,
+% then plot it as a dashed line with a glow-like style.
+if ~isempty(focal_x{1})
+    norm_focal = normalize(focal_y{1}, 'range');
+    % Plot it as a dashed line in white (for contrast) without markers.
+    % 'HandleVisibility','off' prevents it from appearing in the legend.
+    plot(focal_x{1}, norm_focal, '--', 'Color', 'w', 'LineWidth', 4, 'HandleVisibility', 'off');
+end
+
+% Create the legend for the event rate curves.
+legend_labels = arrayfun(@(w) sprintf('%dnm', w), wavelengths, 'UniformOutput', false);
+h_leg = legend(legend_labels, 'Location', 'west', 'FontSize', 14, 'TextColor', 'w');
+h_leg.Title.String = 'Wavelengths';
+xlim([39 54])
+
+%% website page figures
+% 13x13 grid for each wavelength and focal length
+pixel_intensity_limit = 35;
+
+feedback_range_array = 2800:1:3250;
+parent_path = '/media/samiarja/USB/Optical_characterisation/hyperspectral_high_resolution/';
+
+folders = { ...
+    '400', '450', '500', '550', '600', '650', '700', ...
+    '750', '800', '850', '900', '950', '1000' };
+
+colors = { ...
+    '#610061', ... % 400nm
+    'b', ...       % 450nm
+    '#00ff92', ... % 500nm
+    'g', ...       % 550nm
+    '#ffbe00', ... % 600nm
+    'r', ...       % 650nm
+    '#e90000', ... % 700nm
+    '#a10000', ... % 750nm
+    '#6d0000', ... % 800nm
+    '#3b0f0f', ... % 850nm
+    '#210808', ... % 900nm
+    '#1c0404', ... % 950nm
+    '#030000'      % 1000nm
+    };
+
+% Feedback conversion parameters (not used in the subfigure display)
+feedback_min = 284;
+feedback_max = 3965;
+distance_at_min_mm = 92;
+feedback_range = feedback_max - feedback_min;
+
+% Preallocate cell arrays for storing data from each folder.
+nFolders = numel(folders);
+focal_mm_all = cell(1, nFolders);
+peak_all     = cell(1, nFolders);
+fileListAll  = cell(1, nFolders);
+maxFileIndex = cell(1, nFolders);
+
+% Loop over each folder to determine the file with the maximum corrected peak.
+vertCrop_half = 30;  % crop ±30 rows about the image center
+
+feedback_motor_value = [];
+frame_camera_hyperspectral_output = zeros(13,3);
+for i = 1:nFolders
+    currFolder = folders{i};
+    fileList = dir(fullfile(parent_path, currFolder, '*.tiff'));
+    fileListAll{i} = fileList;
+    nFiles = numel(fileList);
+
+    focal_vals = zeros(nFiles,1);
+    peak_vals  = zeros(nFiles,1);
+    
+    numbers = cellfun(@(nm) str2double(regexp(nm, '\d+', 'match', 'once')), {fileList.name});
+    
+    % Sort and reorder the struct array.
+    [~, sortIdx] = sort(numbers);
+    fileList = fileList(sortIdx);
+    
+    % Process each file in sorted order.
+    for j = 1:nFiles
+        fileName = fileList(j).name;
+        % Use the feedback_range_array values here.
+        feedback_value = feedback_range_array(j);
+        % Read the image.
+        img = imread(fullfile(parent_path, currFolder, fileName));
+        if size(img,3) == 3
+            img = rgb2gray(img);
+        end
+        
+        img(img > pixel_intensity_limit) = 0;
+
+        [rows, ~] = size(img);
+        mid_row = round(rows/2);
+        r_start = max(1, mid_row - 100);
+        r_end   = min(rows, mid_row + 50);
+        cropped = double(img(r_start:r_end, :));
+
+        cropped_blurred = imgaussfilt(cropped, 2);
+
+        % For each row in the cropped region, find its maximum pixel value.
+        rowMaxima = max(cropped_blurred, [], 2);
+        [peak, ~] = max(rowMaxima);
+        
+        % Store the corrected peak.
+        peak_vals(j) = peak;
+    end
+    
+    % Find the file index with the maximum corrected peak.
+    [peak_val, idx_max] = max(peak_vals);
+    maxFileIndex{i} = idx_max;
+    
+    % (Focal length data storage omitted for brevity)
+    % focal_mm_all{i} = [];
+    peak_all{i} = peak_vals;
+
+    selected_focal_length = str2double(fileList(idx_max).name(1:4));
+    focal_length_mm = (feedback_max - selected_focal_length) / feedback_range * distance_at_min_mm;
+
+    frame_camera_hyperspectral_output(i,:) = [str2double(folders{i}), focal_length_mm/10, peak_val];
+    fprintf('Wavelength (nm) %s: Focal length (cm) %d (%s)\n', folders{i}, idx_max, focal_length_mm/10);
+    feedback_motor_value = [feedback_motor_value; feedback_range_array(idx_max)];
+end
+
+% Parameters for the ROI extraction.
+ROI_size = 100;        % 100x100 region for brightest pixel search.
+ROI_half = ROI_size / 2;
+crop_radius = 35;      % Final crop: (2*crop_radius+1) square region.
+
+% Subplot parameters for subtightplot:
+gap    = [0.005 0.005];  % [vertical_gap, horizontal_gap]
+marg_h = [0.02 0.02];    % [bottom_margin, top_margin]
+marg_w = [0.02 0.02];    % [left_margin, right_margin]
+
+% Save each row as a separate high-resolution image.
+for row = 1:nFolders
+    % Create a new figure for the current row.
+    fig = figure('Color', 'w');
+    % Optionally adjust the figure size. Here, we set a wide aspect ratio for 1xnFolders.
+    set(fig, 'Units', 'normalized', 'Position', [0.1, 0.4, 0.8, 0.2]);
+    
+    % For the base folder of this row, use its maximum-peak file index.
+    base_idx = maxFileIndex{row};
+    
+    for col = 1:nFolders        
+        currFolder = folders{col};
+        fileList = fileListAll{col};
+        nFiles = numel(fileList);
+        
+        if base_idx > nFiles
+            fileIdx = nFiles;
+        else
+            fileIdx = base_idx;
+        end
+        
+        % Resort fileList based on numeric values in the filenames.
+        numbers = cellfun(@(nm) str2double(regexp(nm, '\d+', 'match', 'once')), {fileList.name});
+        [~, sortIdx] = sort(numbers);
+        fileList = fileList(sortIdx);
+        
+        fileName = fileList(fileIdx).name;
+        img = imread(fullfile(parent_path, currFolder, fileName));
+        if size(img,3)==3
+            img = rgb2gray(img);
+        end
+        
+        % Convert image to double and get its dimensions.
+        img = double(img);
+        [r, c] = size(img);
+        center_y = round(r/2);
+        center_x = round(c/2);
+        
+        % Define a ROI (100x100) about the image center.
+        roi_y_min = center_y - ROI_half + 1;
+        roi_y_max = center_y + ROI_half;
+        roi_x_min = center_x - ROI_half + 1;
+        roi_x_max = center_x + ROI_half;
+        roi_y_min = max(1, roi_y_min);
+        roi_y_max = min(r, roi_y_max);
+        roi_x_min = max(1, roi_x_min); 
+        roi_x_max = min(c, roi_x_max);
+        ROI_img = img(roi_y_min:roi_y_max, roi_x_min:roi_x_max);
+        
+        % Smooth the ROI.
+        ROI_smoothed = imgaussfilt(ROI_img, 3);
+        
+        % Find the brightest pixel in the smoothed ROI.
+        [~, idx_roi] = max(ROI_smoothed(:));
+        [peak_y_roi, peak_x_roi] = ind2sub(size(ROI_smoothed), idx_roi);
+        peak_y = roi_y_min - 1 + peak_y_roi;
+        peak_x = roi_x_min - 1 + peak_x_roi;
+        
+        % Define the final crop window around the detected peak.
+        x_range = (peak_x - crop_radius):(peak_x + crop_radius);
+        y_range = (peak_y - crop_radius):(peak_y + crop_radius);
+        % Ensure the ranges are within image bounds.
+        x_range = max(1, min(c, x_range));
+        y_range = max(1, min(r, y_range));
+        final_ROI = img(y_range, x_range);
+        final_ROI(final_ROI < 0) = 0;
+        final_ROI(final_ROI > pixel_intensity_limit) = pixel_intensity_limit;
+        
+        % Create subplots for one row (1 x nFolders).
+        % Here we use subtightplot for tight spacing.
+        subtightplot(1, nFolders, col, gap, marg_h, marg_w);
+        imshow(imgaussfilt(final_ROI, 1), [0 pixel_intensity_limit]);
+        
+        % If this cell is on the diagonal (i.e. row == col), add the colored boundary.
+        if row == col
+            hold on;
+            rectangle('Position', [0.5, 0.5, size(final_ROI,2), size(final_ROI,1)], ...
+                      'EdgeColor', colors{col}, 'LineWidth', 4);
+            hold off;
+        end
+    end
+    
+    % Save the current row figure at high resolution.
+    % The file will be saved in parent_path with a name like 'row_01.png'.
+    outputFile = fullfile(parent_path, sprintf('row_%02d.png', row));
+    exportgraphics(fig, outputFile, 'Resolution', 300);
+    close(fig);
+end
 
