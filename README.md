@@ -31,57 +31,8 @@ Code and analysis for Seeing like a Cephalopod: Colour Vision with a Monochrome 
 
 
 
-```
-conda activate octoeye
-```
-
-Step 0: Record data with OctoEye (.raw) 
-Step 1: Convert .raw to .h5 and multiple .txt
-
-```
-conda deactivate && python convert.py --input_file path/to/raw/file/*.raw
-```
-
-Step 2: E2VID frames reconstruction using the .h5 file
-
-```
-cd E2Calib-LCECalib
-python offline_reconstruction.py  --freq_hz 5 --upsample_rate 20 --h5file path/to/raw/file/*.h5 --height 720 --width 1280
-```
-
-Step 3: Merge all .txt files into a single .es file
-
-```
-python txttoes.py
-```
-
-Step 4: Automatically label events to colour using local variance sweep
-
-```
-python auto_pixeltocolour.py
-```
-
-Step 5: Generate coloured event count/accumulated images
-
-```
-python colour_segmentation_frames.py
-```
-
-Step 6: Overlay the RGB labels on the greylevel reconstructed frames
-
-```
-python RGB_frames_reconstruction.py
-```
-
-Step 7: colour-focus-stack final image
-
-```
-cd Focus_Stacking
-python run.py ./RGB_reconstructed_frames/red_image.png ./RGB_reconstructed_frames/green_image.png ./RGB_reconstructed_frames/blue_image.png
-```
-
 # Summary
-
+Coming soon...
 
 
 # Setup
