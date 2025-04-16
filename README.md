@@ -1,8 +1,16 @@
 # Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera
 
-Code and analysis for Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera
+Code and analysis for **Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera**
 
+```bibtex
+@article{arjacephalopod2025,
+      title={Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera},
+      author={Arja, Sami and Kruger, Nimrod and Marcireau, Alexandre and Ralph, Nicholas Owen and Afshar, Saeed and Cohen, Gregory},
+      journal={arXiv preprint arXiv:2504.10984},
+      year={2025}
+}
 
+```
 
 <table align="center">
   <tr>
