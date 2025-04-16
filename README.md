@@ -33,7 +33,7 @@ Code and analysis for **Seeing like a Cephalopod: Colour Vision with a Monochrom
   <tr>
     <td align="center" style="border:none;">Project Page</td>
     <td align="center" style="border:none;">Paper</td>
-    <td align="center" style="border:none;">Poster</td>
+    <td align="center" style="border:none;">Poster (Coming soon)</td>
   </tr>
 </table>
 
