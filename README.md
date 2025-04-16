@@ -12,7 +12,7 @@ Code and analysis for Seeing like a Cephalopod: Colour Vision with a Monochrome 
       </a>
     </td>
     <td align="center" style="border:none;">
-      <a href="https://arxiv.org/pdf/2304.14125.pdf" target="_blank">
+      <a href="http://arxiv.org/abs/2504.10984" target="_blank">
         <img src="./figures/arxiv.jpeg" alt="Paper" width="50" style="padding:10px; background-color: #f5f5f5; border-radius: 10px; box-shadow: 2px 2px 12px #aaa;">
       </a>
     </td>
