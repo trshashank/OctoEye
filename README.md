@@ -25,7 +25,7 @@ Code and analysis for **Seeing like a Cephalopod: Colour Vision with a Monochrom
       </a>
     </td>
     <td align="center" style="border:none;">
-      <a href="./figures/2023CVPRW_DICMaxNEO_poster.pdf" target="_blank">
+      <a href="./figures/CVPR25_Neuromorphic_Cephalopod_Eye.pdf" target="_blank">
         <img src="./figures/poster_img.png" alt="Poster" width="68" style="padding:10px; background-color: #f5f5f5; border-radius: 10px; box-shadow: 2px 2px 12px #aaa;">
       </a>
     </td>
@@ -33,7 +33,7 @@ Code and analysis for **Seeing like a Cephalopod: Colour Vision with a Monochrom
   <tr>
     <td align="center" style="border:none;">Project Page</td>
     <td align="center" style="border:none;">Paper</td>
-    <td align="center" style="border:none;">Poster (Coming soon)</td>
+    <td align="center" style="border:none;">Poster</td>
   </tr>
 </table>
 
