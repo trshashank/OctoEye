@@ -1,4 +1,4 @@
-# Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera
+# Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera [CVPRW2025]
 
 Code and analysis for **Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera**
 
