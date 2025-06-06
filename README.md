@@ -50,7 +50,7 @@ If you find this work useful, please cite our paper:
 
 
 <p align="center">
-  <img src="./figures/teaser_figure.png" alt="Descriptive alt text" style="max-width: 80%; height: auto;">
+  <img src="./figures/teaser_figure_pp.png" alt="Descriptive alt text" style="max-width: 80%; height: auto;">
 </p>
 
 
