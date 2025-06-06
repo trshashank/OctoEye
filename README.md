@@ -4,29 +4,6 @@ Code and analysis for **Seeing like a Cephalopod: Colour Vision with a Monochrom
 
 
 
-> **TL;DR**  
-> A cheap glass ball plus a monochrome sensor—frame _or_ event—is enough to unlock compact, passive hyperspectral vision, by leveraging the lens’s intrinsic chromatic aberration much like how cephalopod see the world underwater.
->
-
-
-### Citation
-
-If you find this work useful, please cite our paper:
-
-```bibtex
-@inproceedings{arja_cephalopod_CVPRW_2025,
-      title     = {Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera},
-      author    = {Arja, Sami and Kruger, Nimrod and Marcireau, Alexandre and Ralph, Nicholas Owen and Afshar, Saeed and Cohen, Gregory},
-      booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshop (CVPRW)},
-      year      = {2025}
-}
-```
-
-<p align="center">
-  <img src="./figures/teaser_figure.png" alt="Descriptive alt text" style="max-width: 80%; height: auto;">
-</p>
-
-
 <table align="center">
   <tr>
     <td align="center" style="border:none;">
@@ -52,6 +29,29 @@ If you find this work useful, please cite our paper:
   </tr>
 </table>
 
+
+> **TL;DR**  
+> A cheap glass ball plus a monochrome sensor—frame _or_ event—is enough to unlock compact, passive hyperspectral vision, by leveraging the lens’s intrinsic chromatic aberration much like how cephalopod see the world underwater.
+>
+
+
+### Citation
+
+If you find this work useful, please cite our paper:
+
+```bibtex
+@inproceedings{arja_cephalopod_CVPRW_2025,
+      title     = {Seeing like a Cephalopod: Colour Vision with a Monochrome Event Camera},
+      author    = {Arja, Sami and Kruger, Nimrod and Marcireau, Alexandre and Ralph, Nicholas Owen and Afshar, Saeed and Cohen, Gregory},
+      booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshop (CVPRW)},
+      year      = {2025}
+}
+```
+
+
+<p align="center">
+  <img src="./figures/teaser_figure.png" alt="Descriptive alt text" style="max-width: 80%; height: auto;">
+</p>
 
 
 # Summary
